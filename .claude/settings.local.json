@@ -5,7 +5,5 @@
       "Skill(claude-api:*)"
     ]
   },
-  "enabledPlugins": {
-    "ecc@ecc": true
-  }
+  "enableAllProjectMcpServers": true
 }

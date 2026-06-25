@@ -19,4 +19,33 @@ look back on work done and work set for the next day.
  17/06/2026: 
   Only made the github repo and published it
 
-  
+ 24/06/2026 (Day 4):
+  AUTH DECISION: Customers do NOT need login. Anonymous inquiry form only.
+  Agents DO need login via Supabase Auth. Two separate worlds: public site + agent portal.
+
+  DESIGN SYSTEM created (DESIGN.md + design-tokens.json):
+  - Colors: Deep Navy (#1B3A6B) primary, Gold (#C9961A) accent
+  - Font: Inter
+  - Full token set for spacing, radius, shadows, status colors
+
+  LANDING PAGE built (client/src/pages/LandingPage.tsx):
+  - Navbar (sticky, navy, Agent Login subtle link)
+  - Hero (full-height dark gradient, gold CTA)
+  - Why Choose Dalmar (3 value prop cards)
+  - Where We Fly (East Africa / Middle East / Asia destination cards)
+  - How It Works (3 numbered steps)
+  - Inquiry CTA banner
+  - Footer (Services + Information links, Reservation Policy, Refund Policy)
+
+  App.tsx wired with React Router. index.css updated with CSS custom properties.
+
+  KNOWN ISSUE: npm must be run from client/ subfolder, not project root.
+  Correct command: cd client && npm run dev
+
+  NEXT UP:
+  - Customer inquiry form (/inquiry page)
+  - Agent login page (/login)
+  - Supabase client setup (client/src/lib/supabase.ts)
+  - Agent dashboard
+  - Reservation + Refund policy placeholder pages
+

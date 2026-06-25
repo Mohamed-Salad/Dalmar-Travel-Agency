@@ -1,0 +1,10 @@
+{
+  "name": "dalmar-travel-agency",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "server": "npm run dev --prefix server",
+    "dev:all": "npm run dev --prefix client & npm run dev --prefix server"
+  }
+}
