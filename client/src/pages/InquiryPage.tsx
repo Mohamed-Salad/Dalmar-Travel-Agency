@@ -3,43 +3,27 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 type Step = 'form' | 'success';
+type Lang = 'en' | 'so';
 
-const COMMON_ROUTES = [
-  'Mogadishu (MGQ)', 'Nairobi (NBO)', 'Dubai (DXB)', 'Addis Ababa (ADD)',
-  'London (LHR)', 'Istanbul (IST)', 'Jeddah (JED)', 'Riyadh (RUH)',
-  'Djibouti (JIB)', 'Dar es Salaam (DAR)', 'Karachi (KHI)', 'Doha (DOH)',
+const CITIES = [
+  'Mogadishu (MGQ)', 'Hargeisa (HGA)', 'Nairobi (NBO)', 'Dubai (DXB)',
+  'Addis Ababa (ADD)', 'London (LHR)', 'Istanbul (IST)', 'Jeddah (JED)',
+  'Riyadh (RUH)', 'Djibouti (JIB)', 'Dar es Salaam (DAR)', 'Doha (DOH)',
 ];
 
 const PASSENGER_TYPES = [
-  { key: 'adults',   label: 'Adults',   sub: '16 and over',  min: 1 },
-  { key: 'youth',    label: 'Youth',    sub: 'Ages 12 – 15', min: 0 },
-  { key: 'children', label: 'Children', sub: 'Ages 2 – 11',  min: 0 },
-  { key: 'infants',  label: 'Infants',  sub: 'Under 2',      min: 0 },
+  { key: 'adults',   en: 'Adults',   so: 'Waaweyn',    sub: '16+',   min: 1 },
+  { key: 'youth',    en: 'Youth',    so: 'Dhalinyaro', sub: '12–15', min: 0 },
+  { key: 'children', en: 'Children', so: 'Carruur',    sub: '2–11',  min: 0 },
+  { key: 'infants',  en: 'Infants',  so: 'Ilmo yar',   sub: '0–2',   min: 0 },
 ] as const;
-
-const inputStyle = {
-  border: '1px solid var(--color-border)',
-  background: 'var(--color-surface)',
-  color: 'var(--color-text)',
-};
-
-function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full h-11 px-4 rounded-lg outline-none transition-all ${props.className ?? ''}`}
-      style={inputStyle}
-      onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-      onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
-    />
-  );
-}
 
 export default function InquiryPage() {
   const [step, setStep] = useState<Step>('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOneWay, setIsOneWay] = useState(false);
+  const [lang, setLang] = useState<Lang>('en');
 
   const [form, setForm] = useState({
     name: '', phone: '', email: '',
@@ -48,32 +32,30 @@ export default function InquiryPage() {
     earliest_return: '', latest_return: '',
     notes: '',
   });
-
   const [passengers, setPassengers] = useState({ adults: 1, youth: 0, children: 0, infants: 0 });
 
-  const set = (field: keyof typeof form) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setForm(f => ({ ...f, [field]: e.target.value }));
+  const set = (field: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm(f => ({ ...f, [field]: e.target.value }));
 
-  const adjustPassenger = (key: keyof typeof passengers, delta: number, min: number) =>
+  const adjust = (key: keyof typeof passengers, delta: number, min: number) =>
     setPassengers(p => ({ ...p, [key]: Math.max(min, p[key] + delta) }));
 
-  async function handleSubmit(e: { preventDefault(): void }) {
+  const totalPax = passengers.adults + passengers.youth + passengers.children + passengers.infants;
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
-      const { data: customer, error: cErr } = await supabase
+      const customerId = crypto.randomUUID();
+      const { error: cErr } = await supabase
         .from('customers')
-        .insert({ name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null })
-        .select('id')
-        .single();
-
+        .insert({ id: customerId, name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null });
       if (cErr) throw cErr;
 
       const { error: rErr } = await supabase.from('booking_requests').insert({
-        customer_id: customer.id,
+        customer_id: customerId,
         departure_city: form.departure_city.trim(),
         destination_city: form.destination_city.trim(),
         earliest_departure: form.earliest_departure,
@@ -81,12 +63,9 @@ export default function InquiryPage() {
         earliest_return: isOneWay ? null : form.earliest_return || null,
         latest_return: isOneWay ? null : form.latest_return || null,
         notes: form.notes.trim() || null,
-        adults: passengers.adults,
-        youth: passengers.youth,
-        children: passengers.children,
-        infants: passengers.infants,
+        adults: passengers.adults, youth: passengers.youth,
+        children: passengers.children, infants: passengers.infants,
       });
-
       if (rErr) throw rErr;
       setStep('success');
     } catch (err: unknown) {
@@ -96,25 +75,38 @@ export default function InquiryPage() {
     }
   }
 
-  const totalPassengers = passengers.adults + passengers.youth + passengers.children + passengers.infants;
+  const inp = {
+    width: '100%', padding: '8px 16px', outline: 'none',
+    background: 'var(--surface)', border: '1px solid var(--outline-variant)',
+    color: 'var(--on-surface)', fontSize: '14px', borderRadius: '4px',
+  } as React.CSSProperties;
+
+  const lbl = {
+    display: 'block', fontSize: '12px', fontWeight: 600,
+    color: 'var(--on-surface-variant)', marginBottom: '4px',
+    textTransform: 'uppercase' as const, letterSpacing: '0.05em',
+  };
 
   if (step === 'success') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6"
-        style={{ background: 'var(--color-bg)' }}>
-        <div className="max-w-md w-full text-center p-10 rounded-2xl"
-          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-          <div className="text-6xl mb-6">✅</div>
-          <h1 className="font-bold text-2xl mb-3" style={{ color: 'var(--color-text)' }}>
-            Inquiry Submitted!
+        style={{ background: 'var(--background)' }}>
+        <div className="max-w-md w-full text-center p-10 rounded-2xl glass-card">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+            style={{ background: 'var(--secondary-container)' }}>
+            <span className="material-symbols-outlined text-[32px]" style={{ color: 'var(--secondary)', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          </div>
+          <h1 className="font-bold text-[24px] mb-3" style={{ color: 'var(--primary)' }}>
+            {lang === 'en' ? 'Inquiry Submitted!' : 'Codsi La Diray!'}
           </h1>
-          <p style={{ color: 'var(--color-text-muted)' }} className="mb-8 leading-relaxed">
-            One of our agents will review your request and contact you shortly on the number you provided.
+          <p className="mb-8 leading-relaxed" style={{ color: 'var(--on-surface-variant)' }}>
+            {lang === 'en'
+              ? 'One of our agents will review your request and contact you shortly on the number you provided.'
+              : 'Mid ka mid ah wakiiladeenna ayaa dib kugu soo wici doona lambarka aad bixisay.'}
           </p>
-          <Link to="/"
-            style={{ background: 'var(--color-primary)', color: 'white' }}
+          <Link to="/" style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
             className="inline-block px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity">
-            Back to Home
+            {lang === 'en' ? 'Back to Home' : 'Ku Noqo Bogga Hore'}
           </Link>
         </div>
       </div>
@@ -122,230 +114,260 @@ export default function InquiryPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
 
       {/* Navbar */}
-      <nav style={{ background: 'var(--color-primary)' }} className="sticky top-0 z-50 shadow-lg">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-1">
-            <span className="text-white font-bold text-xl">Dalmar</span>
-            <span style={{ color: 'var(--color-gold)' }} className="font-bold text-xl">&nbsp;Travel</span>
+      <header className="w-full sticky top-0 z-50 h-16"
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--outline-variant)' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', paddingLeft: '24px', paddingRight: '24px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link to="/" className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[28px]" style={{ color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>flight</span>
+            <span className="font-bold text-[22px]" style={{ color: 'var(--primary)' }}>Dalmar Travel</span>
           </Link>
-          <Link to="/login" className="text-white/40 hover:text-white/70 text-xs transition-colors">
+          <Link to="/login" className="text-[12px] hover:opacity-70 transition-opacity" style={{ color: 'var(--on-surface-variant)' }}>
             Agent Login
           </Link>
         </div>
-      </nav>
+      </header>
 
-      {/* Page wrapper — truly centered */}
-      <div className="flex justify-center px-6 py-16">
-        <div className="w-full" style={{ maxWidth: '680px' }}>
+      <main style={{ maxWidth: '1440px', margin: '0 auto', paddingTop: '32px', paddingBottom: '48px', paddingLeft: '24px', paddingRight: '24px' }}>
+        <header className="mb-8">
+          <h2 className="font-bold text-[32px]" style={{ color: 'var(--primary)', letterSpacing: '-0.02em' }}>
+            {lang === 'en' ? 'Request Your Travel Quote' : 'Codsiga Qiimaha Safarkaaga'}
+          </h2>
+          <p style={{ color: 'var(--on-surface-variant)', fontSize: '14px', marginTop: '4px' }}>
+            {lang === 'en'
+              ? 'Fill out the form below and our expert agents will find the best rates for your journey.'
+              : 'Buuxi foomka hoose, wakiiladeenuna waxay helayaan qiimaha ugu fiican safarkaaga.'}
+          </p>
+        </header>
 
-          <div className="mb-10">
-            <h1 className="font-bold mb-3" style={{ fontSize: '36px', color: 'var(--color-text)' }}>
-              Make a Travel Inquiry
-            </h1>
-            <p style={{ color: 'var(--color-text-muted)' }} className="text-lg leading-relaxed">
-              Fill in your details below. Our agents will find the best available fares and call you directly.
-            </p>
-          </div>
+        {/* Bento grid: sidebar + main */}
+        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '16px', alignItems: 'start' }}>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
-
-            {/* ── Contact ── */}
-            <section className="p-6 rounded-2xl space-y-4"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <h2 className="font-semibold text-sm uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
-                Your Details
-              </h2>
+          {/* Sidebar */}
+          <div className="space-y-4">
+            <div className="rounded-xl p-4 flex items-start justify-between"
+              style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>
               <div>
-                <label className="block text-sm font-medium mb-1.5">
-                  Full Name <span style={{ color: 'var(--color-danger)' }}>*</span>
-                </label>
-                <Input required value={form.name} onChange={set('name')} placeholder="e.g. Faadumo Warsame" />
+                <p className="text-[12px] opacity-80">Support System</p>
+                <p className="font-bold text-[14px]">Soomaali / English</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Phone Number <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  </label>
-                  <Input required type="tel" value={form.phone} onChange={set('phone')} placeholder="+44 7700 900000" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    Email <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
-                  </label>
-                  <Input type="email" value={form.email} onChange={set('email')} placeholder="your@email.com" />
-                </div>
-              </div>
-            </section>
-
-            {/* ── Route ── */}
-            <section className="p-6 rounded-2xl space-y-4"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <h2 className="font-semibold text-sm uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
-                Route
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                {(['departure_city', 'destination_city'] as const).map((field) => (
-                  <div key={field}>
-                    <label className="block text-sm font-medium mb-1.5">
-                      {field === 'departure_city' ? 'Flying From' : 'Flying To'}{' '}
-                      <span style={{ color: 'var(--color-danger)' }}>*</span>
-                    </label>
-                    <Input
-                      required value={form[field]}
-                      onChange={set(field)}
-                      list={`${field}-list`}
-                      placeholder={field === 'departure_city' ? 'e.g. London (LHR)' : 'e.g. Mogadishu (MGQ)'}
-                    />
-                    <datalist id={`${field}-list`}>
-                      {COMMON_ROUTES.map(r => <option key={r} value={r} />)}
-                    </datalist>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* ── Passengers ── */}
-            <section className="p-6 rounded-2xl"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-sm uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
-                  Passengers
-                </h2>
-                <span className="text-sm font-medium px-3 py-1 rounded-full"
-                  style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>
-                  {totalPassengers} total
-                </span>
-              </div>
-              <div className="space-y-3">
-                {PASSENGER_TYPES.map(({ key, label, sub, min }) => (
-                  <div key={key} className="flex items-center justify-between py-2"
-                    style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <div>
-                      <p className="font-medium text-sm">{label}</p>
-                      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{sub}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <button type="button"
-                        onClick={() => adjustPassenger(key, -1, min)}
-                        disabled={passengers[key] <= min}
-                        className="w-8 h-8 rounded-full font-bold text-lg flex items-center justify-center transition-all disabled:opacity-30"
-                        style={{ border: '1px solid var(--color-border)', color: 'var(--color-primary)' }}>
-                        −
-                      </button>
-                      <span className="w-6 text-center font-semibold">{passengers[key]}</span>
-                      <button type="button"
-                        onClick={() => adjustPassenger(key, 1, min)}
-                        className="w-8 h-8 rounded-full font-bold text-lg flex items-center justify-center transition-all"
-                        style={{ background: 'var(--color-primary)', color: 'white' }}>
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* ── Travel Dates ── */}
-            <section className="p-6 rounded-2xl space-y-5"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-sm uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
-                  Travel Dates
-                </h2>
-                <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--color-text-muted)' }}>
-                  <input type="checkbox" checked={isOneWay} onChange={e => setIsOneWay(e.target.checked)} />
-                  One-way trip
-                </label>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium mb-3">
-                  Departure window <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  <span className="ml-2 font-normal text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    earliest and latest you can depart
-                  </span>
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  {(['earliest_departure', 'latest_departure'] as const).map((field, i) => (
-                    <div key={field}>
-                      <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                        {i === 0 ? 'Earliest' : 'Latest'}
-                      </label>
-                      <Input
-                        required type="date" value={form[field]} onChange={set(field)}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className="material-symbols-outlined" style={{ color: 'var(--secondary-fixed)' }}>translate</span>
+                <div className="flex rounded overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {(['en', 'so'] as Lang[]).map(l => (
+                    <button key={l} type="button" onClick={() => setLang(l)}
+                      className="px-2 py-0.5 text-[11px] font-bold uppercase transition-colors"
+                      style={{ background: lang === l ? 'var(--secondary-fixed)' : 'transparent', color: lang === l ? 'var(--on-secondary-fixed)' : 'rgba(255,255,255,0.7)' }}>
+                      {l === 'en' ? 'EN' : 'SO'}
+                    </button>
                   ))}
                 </div>
               </div>
+            </div>
+            <div className="glass-card rounded-xl p-4 space-y-3">
+              <h3 className="font-bold text-[14px]" style={{ color: 'var(--primary)' }}>
+                {lang === 'en' ? 'How it works' : 'Sida Loo Shaqeeyo'}
+              </h3>
+              {([
+                ['send', lang === 'en' ? 'Submit your request' : 'Dir codsigaaga'],
+                ['search', lang === 'en' ? 'We find best fares' : 'Waxaan helaa qiimo fiican'],
+                ['phone_in_talk', lang === 'en' ? 'Agent calls you back' : 'Wakiil ku soo wacaa'],
+              ] as [string, string][]).map(([icon, text]) => (
+                <div key={icon} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'var(--secondary-container)' }}>
+                    <span className="material-symbols-outlined text-[16px]" style={{ color: 'var(--on-secondary-container)' }}>{icon}</span>
+                  </div>
+                  <span className="text-[13px]" style={{ color: 'var(--on-surface-variant)' }}>{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {!isOneWay && (
-                <div>
-                  <p className="text-sm font-medium mb-3">
-                    Return window
-                    <span className="ml-2 font-normal text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      optional — leave blank if flexible
-                    </span>
-                  </p>
+          {/* Main form */}
+          <form onSubmit={handleSubmit}>
+            <section className="glass-card rounded-xl shadow-sm"
+              style={{ padding: '24px', border: '1px solid rgba(0,30,64,0.05)' }}>
+              <div className="space-y-6">
+
+                {/* Contact */}
+                <div className="space-y-3">
+                  <div>
+                    <label style={lbl}>{lang === 'en' ? 'Full Name *' : 'Magacaaga Buuxa *'}</label>
+                    <input required value={form.name} onChange={set('name')}
+                      placeholder={lang === 'en' ? 'e.g. Faadumo Warsame' : 'Tusaale: Faadumo Warsame'}
+                      style={inp} />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {(['earliest_return', 'latest_return'] as const).map((field, i) => (
-                      <div key={field}>
-                        <label className="block text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                          {i === 0 ? 'Earliest' : 'Latest'}
-                        </label>
-                        <Input
-                          type="date" value={form[field]} onChange={set(field)}
-                          min={form.earliest_departure || new Date().toISOString().split('T')[0]}
-                        />
+                    <div>
+                      <label style={lbl}>{lang === 'en' ? 'Phone / WhatsApp *' : 'Telefoon *'}</label>
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>phone</span>
+                        <input required type="tel" value={form.phone} onChange={set('phone')}
+                          placeholder="+252 ..." style={{ ...inp, paddingLeft: '36px' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={lbl}>{lang === 'en' ? 'Email (optional)' : 'Email (ikhtiyaari)'}</label>
+                      <input type="email" value={form.email} onChange={set('email')}
+                        placeholder="email@example.com" style={inp} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Route */}
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { field: 'departure_city' as const, icon: 'flight_takeoff', en: 'Flying From *', so: 'Ka Duulaya *', ph: 'e.g. London (LHR)' },
+                    { field: 'destination_city' as const, icon: 'flight_land', en: 'Flying To *', so: 'U Duulaya *', ph: 'e.g. Mogadishu (MGQ)' },
+                  ].map(({ field, icon, en, so, ph }) => (
+                    <div key={field}>
+                      <label style={lbl}>{lang === 'en' ? en : so}</label>
+                      <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>{icon}</span>
+                        <input required value={form[field]} onChange={set(field)}
+                          list={`${field}-list`} placeholder={ph}
+                          style={{ ...inp, paddingLeft: '36px' }} />
+                        <datalist id={`${field}-list`}>{CITIES.map(c => <option key={c} value={c} />)}</datalist>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Passengers */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label style={lbl}>{lang === 'en' ? 'Passengers' : 'Rakaabka'}</label>
+                    <span className="text-[12px] px-2 py-0.5 rounded-full font-bold"
+                      style={{ background: 'var(--surface-container)', color: 'var(--on-surface-variant)' }}>
+                      {totalPax} {lang === 'en' ? 'total' : 'wadarta'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                    {PASSENGER_TYPES.map(({ key, en, so, sub, min }) => (
+                      <div key={key} className="flex items-center justify-between py-2"
+                        style={{ borderBottom: '1px solid var(--outline-variant)' }}>
+                        <div>
+                          <p className="font-bold text-[14px]" style={{ color: 'var(--on-surface)' }}>{lang === 'en' ? en : so}</p>
+                          <p className="text-[12px]" style={{ color: 'var(--outline)' }}>{sub}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => adjust(key, -1, min)}
+                            disabled={passengers[key] <= min}
+                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg disabled:opacity-30"
+                            style={{ border: '1px solid var(--outline-variant)', color: 'var(--primary)' }}>−</button>
+                          <span className="w-5 text-center font-bold" style={{ color: 'var(--primary)' }}>{passengers[key]}</span>
+                          <button type="button" onClick={() => adjust(key, 1, min)}
+                            className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"
+                            style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>+</button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
-            </section>
 
-            {/* ── Notes ── */}
-            <section className="p-6 rounded-2xl"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-              <label className="block font-semibold text-sm uppercase tracking-wider mb-3"
-                style={{ color: 'var(--color-primary)' }}>
-                Additional Notes <span className="font-normal normal-case" style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
-              </label>
-              <textarea
-                value={form.notes} onChange={set('notes')} rows={3}
-                placeholder="e.g. Prefer morning flights, specific airline, luggage requirements..."
-                className="w-full px-4 py-3 rounded-lg outline-none transition-all resize-none"
-                style={inputStyle}
-                onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
-              />
-            </section>
+                {/* Travel Dates */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <label style={lbl}>{lang === 'en' ? 'Travel Dates' : 'Taariikhaha Safarka'}</label>
+                    <label className="flex items-center gap-2 cursor-pointer text-[13px]" style={{ color: 'var(--on-surface-variant)' }}>
+                      <input type="checkbox" checked={isOneWay} onChange={e => setIsOneWay(e.target.checked)} />
+                      {lang === 'en' ? 'One-way trip' : 'Hal Taraf'}
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <p className="font-bold text-[12px]" style={{ color: 'var(--on-surface-variant)' }}>
+                        {lang === 'en' ? 'Departure window *' : 'Muddada Baxitaanka *'}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['earliest_departure', 'latest_departure'] as const).map((f, i) => (
+                          <div key={f}>
+                            <label style={{ ...lbl, fontSize: '10px' }}>
+                              {i === 0 ? (lang === 'en' ? 'Earliest' : 'Ugu Horreysa') : (lang === 'en' ? 'Latest' : 'Ugu Dambe')}
+                            </label>
+                            <input required type="date" value={form[f]} onChange={set(f)}
+                              min={new Date().toISOString().split('T')[0]} style={inp} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {!isOneWay && (
+                      <div className="space-y-2">
+                        <p className="font-bold text-[12px]" style={{ color: 'var(--on-surface-variant)' }}>
+                          {lang === 'en' ? 'Return window' : 'Muddada Noqoshada'}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['earliest_return', 'latest_return'] as const).map((f, i) => (
+                            <div key={f}>
+                              <label style={{ ...lbl, fontSize: '10px' }}>
+                                {i === 0 ? (lang === 'en' ? 'Earliest' : 'Ugu Horreysa') : (lang === 'en' ? 'Latest' : 'Ugu Dambe')}
+                              </label>
+                              <input type="date" value={form[f]} onChange={set(f)}
+                                min={form.earliest_departure || new Date().toISOString().split('T')[0]} style={inp} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            {error && (
-              <div className="p-4 rounded-lg text-sm"
-                style={{ background: '#FEF2F2', color: 'var(--color-danger)', border: '1px solid #FECACA' }}>
-                {error}
+                {/* Notes */}
+                <div>
+                  <label style={lbl}>{lang === 'en' ? 'Additional Notes (optional)' : 'Faallo Dheeraad Ah (ikhtiyaari)'}</label>
+                  <textarea value={form.notes} onChange={set('notes')} rows={3}
+                    placeholder={lang === 'en' ? 'e.g. Prefer morning flights, specific airline...' : 'Tusaale: Dulimaadka subaxda...'}
+                    style={{ ...inp, resize: 'vertical' }} />
+                </div>
+
+                {error && (
+                  <div className="p-4 rounded-lg text-[13px]"
+                    style={{ background: 'var(--error-container)', color: 'var(--error)', border: '1px solid var(--error)' }}>
+                    {error}
+                  </div>
+                )}
               </div>
-            )}
+            </section>
 
-            <button
-              type="submit" disabled={loading}
-              style={{ background: loading ? 'var(--color-text-muted)' : 'var(--color-primary)', color: 'white' }}
-              className="w-full h-12 rounded-xl font-semibold text-base transition-all hover:opacity-90 disabled:cursor-not-allowed">
-              {loading ? 'Submitting...' : 'Submit Inquiry'}
-            </button>
-
-            <p className="text-center text-sm pb-8" style={{ color: 'var(--color-text-muted)' }}>
-              No account needed. We'll contact you on the number provided.
-            </p>
-
+            {/* Stitch submit section */}
+            <div className="space-y-4 mt-6">
+              <div className="glass-card rounded-xl p-8 text-center" style={{ border: '1px solid rgba(0,30,64,0.1)' }}>
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ background: 'var(--secondary-container)' }}>
+                  <span className="material-symbols-outlined text-[28px]" style={{ color: 'var(--secondary)' }}>send</span>
+                </div>
+                <h3 className="font-bold text-[24px] mb-2" style={{ color: 'var(--primary)' }}>
+                  {lang === 'en' ? 'Ready to find your flight?' : 'Ma diyaar baad u tahay?'}
+                </h3>
+                <p className="mb-6 max-w-md mx-auto text-[14px]" style={{ color: 'var(--on-surface-variant)' }}>
+                  {lang === 'en'
+                    ? 'Once you submit, our travel specialists search all available airlines and contact you via WhatsApp within 2 hours.'
+                    : 'Markaad dirto, wakiiladeenna ayaa raadinaya dhamaan dulimaadyada oo kuugu soo wacaya 2 saac gudahood.'}
+                </p>
+                <button type="submit" disabled={loading}
+                  className="font-bold py-4 px-12 rounded-xl text-[20px] hover:opacity-90 transition-all active:scale-95 shadow-lg disabled:opacity-50"
+                  style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>
+                  {loading
+                    ? (lang === 'en' ? 'Submitting...' : 'La dirayo...')
+                    : (lang === 'en' ? 'Submit Quote Request' : 'Dir Codsiga Qiimaha')}
+                </button>
+              </div>
+              <div className="rounded-xl p-4 flex items-center justify-center gap-3"
+                style={{ background: 'var(--surface-container)', border: '1px solid var(--outline-variant)' }}>
+                <span className="material-symbols-outlined" style={{ color: 'var(--secondary)', fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                <p className="font-bold text-[13px]" style={{ color: 'var(--primary)' }}>
+                  {lang === 'en'
+                    ? 'Your data is secure and will only be used to provide your travel quotation.'
+                    : 'Xogahaagu waa ammaan. Waxaa loo isticmaalayaa kaliya siinta qiimaha safarkaaga.'}
+                </p>
+              </div>
+            </div>
           </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

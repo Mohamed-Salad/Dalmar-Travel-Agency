@@ -9,108 +9,88 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLogin(e: { preventDefault(): void }) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (err) {
-      setError(err.message);
-      setLoading(false);
-    } else {
-      navigate('/dashboard');
-    }
+    if (err) { setError(err.message); setLoading(false); }
+    else navigate('/dashboard');
   }
 
-  const inputStyle = {
-    border: '1px solid var(--color-border)',
-    background: 'var(--color-surface)',
-    color: 'var(--color-text)',
-  };
+  const inp = {
+    width: '100%', height: '44px', padding: '0 16px', outline: 'none',
+    background: 'var(--surface)', border: '1px solid var(--outline-variant)',
+    color: 'var(--on-surface)', fontSize: '14px', borderRadius: '4px',
+  } as React.CSSProperties;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'var(--color-bg)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
 
-      {/* Navbar */}
-      <nav style={{ background: 'var(--color-primary)' }} className="shadow-lg">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center">
-          <Link to="/" className="flex items-center gap-1">
-            <span className="text-white font-bold text-xl">Dalmar</span>
-            <span style={{ color: 'var(--color-gold)' }} className="font-bold text-xl">&nbsp;Travel</span>
+      <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--outline-variant)' }}>
+        <div style={{ maxWidth: '1440px', margin: '0 auto', paddingLeft: '24px', paddingRight: '24px', height: '64px', display: 'flex', alignItems: 'center' }}>
+          <Link to="/" className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[28px]" style={{ color: 'var(--primary)', fontVariationSettings: "'FILL' 1" }}>flight</span>
+            <span className="font-bold text-[22px]" style={{ color: 'var(--primary)' }}>Dalmar Travel</span>
           </Link>
         </div>
-      </nav>
+      </header>
 
-      {/* Centered card */}
       <div className="flex-1 flex items-center justify-center px-6 py-16">
-        <div className="w-full" style={{ maxWidth: '420px' }}>
+        <div className="w-full" style={{ maxWidth: '440px' }}>
 
-          <div className="mb-8 text-center">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'var(--color-primary-light)' }}>
-              <span className="text-2xl">🔐</span>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'var(--primary)' }}>
+              <span className="material-symbols-outlined text-[32px]"
+                style={{ color: 'var(--secondary-fixed)', fontVariationSettings: "'FILL' 1" }}>lock</span>
             </div>
-            <h1 className="font-bold text-2xl mb-2" style={{ color: 'var(--color-text)' }}>
+            <h1 className="font-bold text-[24px] mb-2" style={{ color: 'var(--primary)', letterSpacing: '-0.01em' }}>
               Agent Login
             </h1>
-            <p style={{ color: 'var(--color-text-muted)' }} className="text-sm">
+            <p className="text-[14px]" style={{ color: 'var(--on-surface-variant)' }}>
               This portal is for Dalmar Travel agents only.
             </p>
           </div>
 
-          <div className="p-8 rounded-2xl"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-            <form onSubmit={handleLogin} className="space-y-5">
+          <div className="p-8 rounded-2xl glass-card">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text)' }}>
-                  Email
-                </label>
-                <input
-                  required type="email" value={email} onChange={e => setEmail(e.target.value)}
-                  placeholder="agent@dalmartravel.com"
-                  className="w-full h-11 px-4 rounded-lg outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
-                />
+                <label className="block text-[12px] font-semibold uppercase tracking-wider mb-1.5"
+                  style={{ color: 'var(--on-surface-variant)' }}>Email</label>
+                <input required type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="agent@dalmartravel.com" style={inp}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--outline-variant)')} />
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text)' }}>
-                  Password
-                </label>
-                <input
-                  required type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-11 px-4 rounded-lg outline-none transition-all"
-                  style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--color-primary)')}
-                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
-                />
+                <label className="block text-[12px] font-semibold uppercase tracking-wider mb-1.5"
+                  style={{ color: 'var(--on-surface-variant)' }}>Password</label>
+                <input required type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••" style={inp}
+                  onFocus={e => (e.currentTarget.style.borderColor = 'var(--primary)')}
+                  onBlur={e => (e.currentTarget.style.borderColor = 'var(--outline-variant)')} />
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg text-sm"
-                  style={{ background: '#FEF2F2', color: 'var(--color-danger)', border: '1px solid #FECACA' }}>
+                <div className="p-3 rounded-lg text-[13px]"
+                  style={{ background: 'var(--error-container)', color: 'var(--error)', border: '1px solid var(--error)' }}>
                   {error}
                 </div>
               )}
 
-              <button
-                type="submit" disabled={loading}
-                className="w-full h-11 rounded-xl font-semibold transition-all hover:opacity-90 disabled:cursor-not-allowed"
-                style={{ background: loading ? 'var(--color-text-muted)' : 'var(--color-primary)', color: 'white' }}>
-                {loading ? 'Signing in...' : 'Sign In'}
+              <button type="submit" disabled={loading}
+                className="w-full h-11 rounded-xl font-bold text-[14px] transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+                style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>
+                {loading ? 'Signing in…' : 'Sign In'}
               </button>
             </form>
           </div>
 
-          <p className="text-center text-xs mt-6" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-center text-[12px] mt-6" style={{ color: 'var(--on-surface-variant)' }}>
             Not an agent?{' '}
-            <Link to="/" style={{ color: 'var(--color-primary)' }} className="hover:underline">
-              Back to home
-            </Link>
+            <Link to="/" style={{ color: 'var(--primary)' }} className="hover:underline font-semibold">Back to home</Link>
           </p>
         </div>
       </div>

@@ -1,25 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #1B3A6B;
-  --color-primary-dark: #0F2444;
-  --color-primary-light: #E8EEF7;
-  --color-gold: #C9961A;
-  --color-gold-light: #FDF3DC;
-  --color-text: #111827;
-  --color-text-muted: #6B7280;
-  --color-surface: #FFFFFF;
-  --color-bg: #F7F8FA;
-  --color-border: #E5E7EB;
-  --color-success: #059669;
-  --color-warning: #D97706;
-  --color-danger: #DC2626;
+  --primary: #001e40;
+  --on-primary: #ffffff;
+  --primary-container: #003366;
+  --on-primary-container: #799dd6;
+  --primary-fixed: #d5e3ff;
+  --primary-fixed-dim: #a7c8ff;
+  --on-primary-fixed: #001b3c;
+  --on-primary-fixed-variant: #1f477b;
+  --inverse-primary: #a7c8ff;
+
+  --secondary: #006a6a;
+  --on-secondary: #ffffff;
+  --secondary-container: #90efef;
+  --on-secondary-container: #006e6e;
+  --secondary-fixed: #93f2f2;
+  --secondary-fixed-dim: #76d6d5;
+  --on-secondary-fixed: #002020;
+  --on-secondary-fixed-variant: #004f4f;
+
+  --tertiary: #1c1f20;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #313435;
+  --on-tertiary-container: #9a9c9d;
+  --tertiary-fixed: #e1e3e4;
+  --tertiary-fixed-dim: #c5c7c8;
+  --on-tertiary-fixed: #191c1d;
+  --on-tertiary-fixed-variant: #454748;
+
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+
+  --surface: #f9f9ff;
+  --surface-dim: #cfdaf1;
+  --surface-bright: #f9f9ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0f3ff;
+  --surface-container: #e7eeff;
+  --surface-container-high: #dee8ff;
+  --surface-container-highest: #d8e3fa;
+  --on-surface: #111c2c;
+  --on-surface-variant: #43474f;
+  --surface-variant: #d8e3fa;
+
+  --background: #f9f9ff;
+  --on-background: #111c2c;
+
+  --outline: #737780;
+  --outline-variant: #c3c6d1;
+  --inverse-surface: #263142;
+  --inverse-on-surface: #ebf1ff;
 
   font-family: 'Inter', system-ui, sans-serif;
-  color: var(--color-text);
-  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { min-height: 100vh; }
+body { min-height: 100vh; background: var(--background); color: var(--on-surface); }
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.ticker-wrap { overflow: hidden; width: 100%; }
+.ticker { display: inline-block; white-space: nowrap; padding-right: 100%; animation: ticker 30s linear infinite; }
+@keyframes ticker { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-100%,0,0); } }
+
+.glass-card {
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid #E2E8F0;
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
