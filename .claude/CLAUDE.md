@@ -58,6 +58,9 @@ this is so that we can safely always assess when things went wrong where it went
 ### 8. make sure to not tag yourself in credits of commits
 as mentioned in bullet point title. also don't do credits at alll just commit please not even credditng me since thatis a give away of sloppy vibe coding
 
+### 9. instruction
+if you do something either after each hour update memory and depending on who it effects also update design/planning 
+
 
 ---
 
@@ -68,16 +71,13 @@ as mentioned in bullet point title. also don't do credits at alll just commit pl
 | Frontend | React 19 + TypeScript + Vite 8 |
 | Routing | React Router DOM 6 |
 | Styling | Tailwind CSS v4 — `@import "tailwindcss"` only, **no tailwind.config.js** |
-| Design tokens | MD3 CSS custom properties in `client/src/index.css` |
+| Design tokens | MD3 CSS custom properties in `src/index.css` |
 | Icons | Material Symbols Outlined via Google Fonts CDN (already in index.html) |
 | Backend / DB | Supabase (Auth + PostgreSQL) |
 | Design reference | Stitch (Google) — project ID: `17425367072553794360` |
 
-**CRITICAL — always run dev from the client subfolder:**
-```
-cd client && npm run dev
-```
-Running from project root fails — vite lives in `client/node_modules` only.
+Run dev from the repo root: `npm run dev`. As of 07/08/2026 there's no `client/`/`server/`
+split — the app was flattened to root since Supabase is the only backend this uses.
 
 **CRITICAL — do not revert this pattern:**
 Uses `crypto.randomUUID()` client-side to generate the customer ID BEFORE inserting. This avoids `.select('id').single()` after insert, which 401s because anon cannot SELECT from customers (RLS correctly blocks reads for anon):

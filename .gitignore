@@ -1,21 +1,19 @@
 # Dependencies
 node_modules/
-client/node_modules/
-server/node_modules/
 
 # Environment variables — NEVER commit these
 .env
 .env.local
 .env.*.local
-client/.env.local
-server/.env
 
 # Build output
-client/dist/
-server/dist/
+dist/
+dist-ssr/
 
 # Editor
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+.idea
 
 # OS
 .DS_Store
