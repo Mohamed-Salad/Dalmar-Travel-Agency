@@ -24,3 +24,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Private working docs — not meant for the public repo.
+# .claude/CLAUDE.md stays tracked (it's the project bible / instructions).
+.claude/DESIGN.md
+.claude/Memory.md
+.claude/PLANNING.md
+.claude/sessions/
