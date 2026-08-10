@@ -1,9 +1,31 @@
 {
   "permissions": {
     "allow": [
-      "Skill(claude-api)",
-      "Skill(claude-api:*)"
-    ]
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Edit(src/**)",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_navigate"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Edit(./.env)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(npm install *)"
+    ],
+    "defaultMode": "acceptEdits"
   },
-  "enableAllProjectMcpServers": true
+  "enabledMcpjsonServers": [
+    "supabase",
+    "shadcn",
+    "mui-mcp",
+    "chakra-ui"
+  ]
 }

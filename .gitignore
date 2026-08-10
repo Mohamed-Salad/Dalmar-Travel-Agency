@@ -23,6 +23,9 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Playwright MCP output (screenshots, traces taken during dev)
+.playwright-mcp/
+
 # Private working docs — not meant for the public repo.
 # .claude/CLAUDE.md stays tracked (it's the project bible / instructions).
 .claude/DESIGN.md

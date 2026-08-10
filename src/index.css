@@ -1,65 +1,73 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/inter";
+@custom-variant dark (&:is(.dark *));
 
+/* Palette: 6 hues grounded in travel documents (passport ink, boarding-pass
+   paper, airmail stripe), mapped into shadcn's own token slots — not a
+   parallel naming scheme. See .claude/DESIGN.md. */
 :root {
-  --primary: #001e40;
-  --on-primary: #ffffff;
-  --primary-container: #003366;
-  --on-primary-container: #799dd6;
-  --primary-fixed: #d5e3ff;
-  --primary-fixed-dim: #a7c8ff;
-  --on-primary-fixed: #001b3c;
-  --on-primary-fixed-variant: #1f477b;
-  --inverse-primary: #a7c8ff;
+  --background: #f4f5f7;         /* paper */
+  --foreground: #16213e;         /* ink */
+  --card: #ffffff;
+  --card-foreground: #16213e;
+  --popover: #ffffff;
+  --popover-foreground: #16213e;
 
-  --secondary: #006a6a;
-  --on-secondary: #ffffff;
-  --secondary-container: #90efef;
-  --on-secondary-container: #006e6e;
-  --secondary-fixed: #93f2f2;
-  --secondary-fixed-dim: #76d6d5;
-  --on-secondary-fixed: #002020;
-  --on-secondary-fixed-variant: #004f4f;
+  --primary: #d97d3d;            /* horizon — the one accent, all CTAs */
+  --primary-foreground: #16213e; /* ink-on-amber reads as a stamp */
+  --secondary: #e9ebef;          /* quiet neutral surface */
+  --secondary-foreground: #16213e;
+  --muted: #e9ebef;
+  --muted-foreground: #6e7480;   /* ash */
+  --accent: #e9ebef;
+  --accent-foreground: #16213e;
+  --destructive: #b23a2e;        /* stamp — errors, urgent/expiring states */
 
-  --tertiary: #1c1f20;
-  --on-tertiary: #ffffff;
-  --tertiary-container: #313435;
-  --on-tertiary-container: #9a9c9d;
-  --tertiary-fixed: #e1e3e4;
-  --tertiary-fixed-dim: #c5c7c8;
-  --on-tertiary-fixed: #191c1d;
-  --on-tertiary-fixed-variant: #454748;
+  --border: #d8dbe2;
+  --input: #d8dbe2;
+  --ring: #d97d3d;
 
-  --error: #ba1a1a;
-  --on-error: #ffffff;
-  --error-container: #ffdad6;
-  --on-error-container: #93000a;
+  --dusk: #2e3f63;                /* dark-surface variant, e.g. hero/footer */
+  --on-dusk: #f4f5f7;
 
-  --surface: #f9f9ff;
-  --surface-dim: #cfdaf1;
-  --surface-bright: #f9f9ff;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f0f3ff;
-  --surface-container: #e7eeff;
-  --surface-container-high: #dee8ff;
-  --surface-container-highest: #d8e3fa;
-  --on-surface: #111c2c;
-  --on-surface-variant: #43474f;
-  --surface-variant: #d8e3fa;
+  --radius: 0.75rem;              /* controls: buttons, inputs -> ~10px via radius-md */
+  --shadow-card: 0 1px 2px rgba(22,33,62,.04), 0 8px 24px -12px rgba(22,33,62,.18);
+  --font-sans: 'Inter Variable', sans-serif;
+  --font-display: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
 
-  --background: #f9f9ff;
-  --on-background: #111c2c;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-dusk: var(--dusk);
+  --color-on-dusk: var(--on-dusk);
 
-  --outline: #737780;
-  --outline-variant: #c3c6d1;
-  --inverse-surface: #263142;
-  --inverse-on-surface: #ebf1ff;
-
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  --radius-lg: 1.25rem; /* cards -> 20px, softer than the calc()-derived default */
+  --shadow-card: var(--shadow-card);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { min-height: 100vh; background: var(--background); color: var(--on-surface); }
 
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -68,16 +76,18 @@ body { min-height: 100vh; background: var(--background); color: var(--on-surface
   line-height: 1;
 }
 
-.ticker-wrap { overflow: hidden; width: 100%; }
-.ticker { display: inline-block; white-space: nowrap; padding-right: 100%; animation: ticker 30s linear infinite; }
-@keyframes ticker { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-100%,0,0); } }
-
-.glass-card {
-  background: rgba(255,255,255,0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid #E2E8F0;
-}
-
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
