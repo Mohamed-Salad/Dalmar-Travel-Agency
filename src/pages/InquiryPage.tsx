@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { PassengerCounter } from '@/components/inquiry/PassengerCounter'
 import { Stripe } from '@/components/ui/stripe'
+import { SiteHeader } from '@/components/ui/site-header'
+
+const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
 
 type Step = 'form' | 'success'
 type Lang = 'en' | 'so'
@@ -103,12 +106,7 @@ export default function InquiryPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="h-16 border-b border-border">
-        <div className="mx-auto max-w-6xl h-full px-6 flex items-center justify-between">
-          <Link to="/" className="font-display text-lg font-bold text-foreground">Dalmar Travel</Link>
-          <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Agent login</Link>
-        </div>
-      </header>
+      <SiteHeader variant="minimal" />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="font-display text-2xl font-bold text-foreground">
@@ -160,23 +158,23 @@ export default function InquiryPage() {
           {/* Main form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <Card className="pt-0">
-              <Stripe />
+              <Stripe variant="card-top" />
               <CardContent className="flex flex-col gap-6 pt-6">
                 {/* Contact */}
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="name">{lang === 'en' ? 'Full name' : 'Magacaaga Buuxa'}</Label>
-                    <Input id="name" required value={form.name} onChange={set('name')}
+                    <Label htmlFor="name" className={LABEL_CLS}>{lang === 'en' ? 'Full name' : 'Magacaaga Buuxa'}</Label>
+                    <Input id="name" required variant="underline" value={form.name} onChange={set('name')}
                       placeholder={lang === 'en' ? 'e.g. Faadumo Warsame' : 'Tusaale: Faadumo Warsame'} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="phone">{lang === 'en' ? 'Phone / WhatsApp' : 'Telefoon'}</Label>
-                      <Input id="phone" required type="tel" value={form.phone} onChange={set('phone')} placeholder="+252 ..." />
+                      <Label htmlFor="phone" className={LABEL_CLS}>{lang === 'en' ? 'Phone / WhatsApp' : 'Telefoon'}</Label>
+                      <Input id="phone" required type="tel" variant="underline" value={form.phone} onChange={set('phone')} placeholder="+252 ..." />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="email">{lang === 'en' ? 'Email (optional)' : 'Email (ikhtiyaari)'}</Label>
-                      <Input id="email" type="email" value={form.email} onChange={set('email')} placeholder="email@example.com" />
+                      <Label htmlFor="email" className={LABEL_CLS}>{lang === 'en' ? 'Email (optional)' : 'Email (ikhtiyaari)'}</Label>
+                      <Input id="email" type="email" variant="underline" value={form.email} onChange={set('email')} placeholder="email@example.com" />
                     </div>
                   </div>
                 </div>
@@ -188,8 +186,8 @@ export default function InquiryPage() {
                     { field: 'destination_city' as const, en: 'Flying to', so: 'U Duulaya', ph: 'e.g. Mogadishu (MGQ)' },
                   ].map(({ field, en, so, ph }) => (
                     <div key={field} className="flex flex-col gap-1.5">
-                      <Label htmlFor={field}>{lang === 'en' ? en : so}</Label>
-                      <Input id={field} required value={form[field]} onChange={set(field)}
+                      <Label htmlFor={field} className={LABEL_CLS}>{lang === 'en' ? en : so}</Label>
+                      <Input id={field} required variant="underline" value={form[field]} onChange={set(field)}
                         list={`${field}-list`} placeholder={ph} />
                       <datalist id={`${field}-list`}>{CITIES.map((c) => <option key={c} value={c} />)}</datalist>
                     </div>
@@ -199,7 +197,7 @@ export default function InquiryPage() {
                 {/* Passengers */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label>{lang === 'en' ? 'Passengers' : 'Rakaabka'}</Label>
+                    <Label className={LABEL_CLS}>{lang === 'en' ? 'Passengers' : 'Rakaabka'}</Label>
                     <span className="text-xs font-medium text-muted-foreground">
                       {totalPax} {lang === 'en' ? 'total' : 'wadarta'}
                     </span>
@@ -216,7 +214,7 @@ export default function InquiryPage() {
                 {/* Dates */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label>{lang === 'en' ? 'Travel dates' : 'Taariikhaha Safarka'}</Label>
+                    <Label className={LABEL_CLS}>{lang === 'en' ? 'Travel dates' : 'Taariikhaha Safarka'}</Label>
                     <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                       <input type="checkbox" checked={isOneWay} onChange={(e) => setIsOneWay(e.target.checked)} />
                       {lang === 'en' ? 'One-way trip' : 'Hal Taraf'}
@@ -229,7 +227,7 @@ export default function InquiryPage() {
                       </p>
                       <div className="grid grid-cols-2 gap-2">
                         {(['earliest_departure', 'latest_departure'] as const).map((f, i) => (
-                          <Input key={f} required type="date" value={form[f]} onChange={set(f)}
+                          <Input key={f} required type="date" variant="underline" className="font-mono" value={form[f]} onChange={set(f)}
                             min={new Date().toISOString().split('T')[0]}
                             aria-label={i === 0 ? 'Earliest' : 'Latest'} />
                         ))}
@@ -242,7 +240,7 @@ export default function InquiryPage() {
                         </p>
                         <div className="grid grid-cols-2 gap-2">
                           {(['earliest_return', 'latest_return'] as const).map((f, i) => (
-                            <Input key={f} type="date" value={form[f]} onChange={set(f)}
+                            <Input key={f} type="date" variant="underline" className="font-mono" value={form[f]} onChange={set(f)}
                               min={form.earliest_departure || new Date().toISOString().split('T')[0]}
                               aria-label={i === 0 ? 'Earliest' : 'Latest'} />
                           ))}
@@ -254,8 +252,8 @@ export default function InquiryPage() {
 
                 {/* Notes */}
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="notes">{lang === 'en' ? 'Additional notes (optional)' : 'Faallo Dheeraad Ah'}</Label>
-                  <Textarea id="notes" value={form.notes} onChange={set('notes')} rows={3}
+                  <Label htmlFor="notes" className={LABEL_CLS}>{lang === 'en' ? 'Additional notes (optional)' : 'Faallo Dheeraad Ah'}</Label>
+                  <Textarea id="notes" variant="underline" value={form.notes} onChange={set('notes')} rows={3}
                     placeholder={lang === 'en' ? 'e.g. Prefer morning flights, specific airline...' : 'Tusaale: Dulimaadka subaxda...'} />
                 </div>
 

@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Stripe } from '@/components/ui/stripe'
+import { SiteHeader } from '@/components/ui/site-header'
+
+const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -25,11 +28,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="h-16 border-b border-border">
-        <div className="mx-auto max-w-6xl h-full px-6 flex items-center">
-          <Link to="/" className="font-display text-lg font-bold text-foreground">Dalmar Travel</Link>
-        </div>
-      </header>
+      <SiteHeader variant="minimal" showAgentLink={false} />
 
       <div className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-sm">
@@ -39,7 +38,7 @@ export default function LoginPage() {
           </div>
 
           <Card className="pt-0">
-            <Stripe />
+            <Stripe variant="card-top" />
             <CardHeader className="pt-6">
               <CardTitle className="sr-only">Sign in</CardTitle>
               <CardDescription className="sr-only">Enter your agent email and password</CardDescription>
@@ -47,13 +46,13 @@ export default function LoginPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" required type="email" value={email}
+                  <Label htmlFor="email" className={LABEL_CLS}>Email</Label>
+                  <Input id="email" required type="email" variant="underline" value={email}
                     onChange={(e) => setEmail(e.target.value)} placeholder="agent@dalmartravel.com" />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" required type="password" value={password}
+                  <Label htmlFor="password" className={LABEL_CLS}>Password</Label>
+                  <Input id="password" required type="password" variant="underline" value={password}
                     onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                 </div>
                 {error && (

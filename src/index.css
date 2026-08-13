@@ -4,36 +4,37 @@
 @import "@fontsource-variable/inter";
 @custom-variant dark (&:is(.dark *));
 
-/* Palette: 6 hues grounded in travel documents (passport ink, boarding-pass
-   paper, airmail stripe), mapped into shadcn's own token slots — not a
-   parallel naming scheme. See .claude/DESIGN.md. */
+/* Palette: "boarding-pass ledger" — deep ink navy for structural bands
+   (hero/footer/dividers), warm paper for content, one saffron accent
+   reserved for interactive elements only. Mapped into shadcn's own token
+   slots — not a parallel naming scheme. See .claude/DESIGN.md. */
 :root {
-  --background: #f4f5f7;         /* paper */
-  --foreground: #16213e;         /* ink */
-  --card: #ffffff;
-  --card-foreground: #16213e;
-  --popover: #ffffff;
-  --popover-foreground: #16213e;
+  --background: #f6f2e9;         /* paper */
+  --foreground: #0b1d33;         /* ink */
+  --card: #fbf9f4;
+  --card-foreground: #0b1d33;
+  --popover: #fbf9f4;
+  --popover-foreground: #0b1d33;
 
-  --primary: #d97d3d;            /* horizon — the one accent, all CTAs */
-  --primary-foreground: #16213e; /* ink-on-amber reads as a stamp */
-  --secondary: #e9ebef;          /* quiet neutral surface */
-  --secondary-foreground: #16213e;
-  --muted: #e9ebef;
-  --muted-foreground: #6e7480;   /* ash */
-  --accent: #e9ebef;
-  --accent-foreground: #16213e;
+  --primary: #e29b3f;            /* saffron — the one accent, interactive only */
+  --primary-foreground: #0b1d33; /* ink-on-saffron reads as a stamp */
+  --secondary: #ede6d6;          /* quiet warm surface */
+  --secondary-foreground: #0b1d33;
+  --muted: #ede6d6;
+  --muted-foreground: #5b6472;   /* ash */
+  --accent: #ede6d6;
+  --accent-foreground: #0b1d33;
   --destructive: #b23a2e;        /* stamp — errors, urgent/expiring states */
 
-  --border: #d8dbe2;
-  --input: #d8dbe2;
-  --ring: #d97d3d;
+  --border: #dcd3bf;
+  --input: #dcd3bf;
+  --ring: #e29b3f;
 
-  --dusk: #2e3f63;                /* dark-surface variant, e.g. hero/footer */
-  --on-dusk: #f4f5f7;
+  --ink: #0b1d33;                 /* dark-surface variant, e.g. hero/footer */
+  --on-ink: #f6f2e9;
 
   --radius: 0.75rem;              /* controls: buttons, inputs -> ~10px via radius-md */
-  --shadow-card: 0 1px 2px rgba(22,33,62,.04), 0 8px 24px -12px rgba(22,33,62,.18);
+  --shadow-card: 0 1px 2px rgba(11,29,51,.05), 0 8px 24px -12px rgba(11,29,51,.20);
   --font-sans: 'Inter Variable', sans-serif;
   --font-display: 'Hanken Grotesk', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -58,16 +59,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-dusk: var(--dusk);
-  --color-on-dusk: var(--on-dusk);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
 
   --radius-lg: 1.25rem; /* cards -> 20px, softer than the calc()-derived default */
   --shadow-card: var(--shadow-card);
   --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
