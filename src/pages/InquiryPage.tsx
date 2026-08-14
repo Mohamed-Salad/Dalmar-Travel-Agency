@@ -9,8 +9,11 @@ import { Button } from '@/components/ui/button'
 import { PassengerCounter } from '@/components/inquiry/PassengerCounter'
 import { Stripe } from '@/components/ui/stripe'
 import { SiteHeader } from '@/components/ui/site-header'
+import { cn } from '@/lib/utils'
 
 const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
+const EYEBROW_CLS = 'font-mono text-xs font-bold uppercase tracking-widest text-primary'
+const SECTION_CLS = 'flex flex-col gap-4 pt-8 mt-8 border-t border-dashed border-border first:pt-0 first:mt-0 first:border-t-0'
 
 type Step = 'form' | 'success'
 type Lang = 'en' | 'so'
@@ -108,19 +111,19 @@ export default function InquiryPage() {
     <div className="theme-schiphol dot-field min-h-screen bg-background text-foreground">
       <SiteHeader variant="minimal" />
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-2xl font-bold text-foreground">
+      <main className="mx-auto max-w-6xl px-6 py-16">
+        <h1 className="font-display text-4xl md:text-5xl font-bold leading-[1.05] tracking-tight text-foreground max-w-2xl">
           {lang === 'en' ? 'Request your travel quote' : 'Codsiga Qiimaha Safarkaaga'}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1 mb-8">
+        <p className="text-base text-muted-foreground mt-4 mb-12 max-w-lg">
           {lang === 'en'
             ? 'Fill out the form below and our agents will find the best rates for your journey.'
             : 'Buuxi foomka hoose, wakiiladeenuna waxay helayaan qiimaha ugu fiican safarkaaga.'}
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10 items-start">
           {/* Sidebar */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 md:sticky md:top-24">
             <Card>
               <CardContent className="flex items-center justify-between">
                 <span className="text-sm font-medium text-foreground">Language</span>
@@ -156,18 +159,19 @@ export default function InquiryPage() {
           </div>
 
           {/* Main form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
             <Card className="pt-0">
               <Stripe variant="card-top" />
-              <CardContent className="flex flex-col gap-6 pt-6">
+              <CardContent className="pt-10 pb-2">
                 {/* Contact */}
-                <div className="flex flex-col gap-3">
+                <div className={SECTION_CLS}>
+                  <p className={EYEBROW_CLS}>{lang === 'en' ? 'Contact' : 'Xiriirka'}</p>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="name" className={LABEL_CLS}>{lang === 'en' ? 'Full name' : 'Magacaaga Buuxa'}</Label>
                     <Input id="name" required variant="underline" value={form.name} onChange={set('name')}
                       placeholder={lang === 'en' ? 'e.g. Faadumo Warsame' : 'Tusaale: Faadumo Warsame'} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-6">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="phone" className={LABEL_CLS}>{lang === 'en' ? 'Phone / WhatsApp' : 'Telefoon'}</Label>
                       <Input id="phone" required type="tel" variant="underline" value={form.phone} onChange={set('phone')} placeholder="+252 ..." />
@@ -180,29 +184,32 @@ export default function InquiryPage() {
                 </div>
 
                 {/* Route */}
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { field: 'departure_city' as const, en: 'Flying from', so: 'Ka Duulaya', ph: 'e.g. London (LHR)' },
-                    { field: 'destination_city' as const, en: 'Flying to', so: 'U Duulaya', ph: 'e.g. Mogadishu (MGQ)' },
-                  ].map(({ field, en, so, ph }) => (
-                    <div key={field} className="flex flex-col gap-1.5">
-                      <Label htmlFor={field} className={LABEL_CLS}>{lang === 'en' ? en : so}</Label>
-                      <Input id={field} required variant="underline" value={form[field]} onChange={set(field)}
-                        list={`${field}-list`} placeholder={ph} />
-                      <datalist id={`${field}-list`}>{CITIES.map((c) => <option key={c} value={c} />)}</datalist>
-                    </div>
-                  ))}
+                <div className={SECTION_CLS}>
+                  <p className={EYEBROW_CLS}>{lang === 'en' ? 'Route' : 'Waddada'}</p>
+                  <div className="grid grid-cols-2 gap-6">
+                    {[
+                      { field: 'departure_city' as const, en: 'Flying from', so: 'Ka Duulaya', ph: 'e.g. London (LHR)' },
+                      { field: 'destination_city' as const, en: 'Flying to', so: 'U Duulaya', ph: 'e.g. Mogadishu (MGQ)' },
+                    ].map(({ field, en, so, ph }) => (
+                      <div key={field} className="flex flex-col gap-1.5">
+                        <Label htmlFor={field} className={LABEL_CLS}>{lang === 'en' ? en : so}</Label>
+                        <Input id={field} required variant="underline" className="font-mono" value={form[field]} onChange={set(field)}
+                          list={`${field}-list`} placeholder={ph} />
+                        <datalist id={`${field}-list`}>{CITIES.map((c) => <option key={c} value={c} />)}</datalist>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Passengers */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className={LABEL_CLS}>{lang === 'en' ? 'Passengers' : 'Rakaabka'}</Label>
+                <div className={SECTION_CLS}>
+                  <div className="flex items-center justify-between">
+                    <p className={EYEBROW_CLS}>{lang === 'en' ? 'Passengers' : 'Rakaabka'}</p>
                     <span className="text-xs font-medium text-muted-foreground">
                       {totalPax} {lang === 'en' ? 'total' : 'wadarta'}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                     {PASSENGER_TYPES.map(({ key, en, so, sub, min }) => (
                       <PassengerCounter key={key} label={lang === 'en' ? en : so} sub={sub}
                         value={passengers[key]} min={min}
@@ -212,9 +219,9 @@ export default function InquiryPage() {
                 </div>
 
                 {/* Dates */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className={LABEL_CLS}>{lang === 'en' ? 'Travel dates' : 'Taariikhaha Safarka'}</Label>
+                <div className={SECTION_CLS}>
+                  <div className="flex items-center justify-between">
+                    <p className={EYEBROW_CLS}>{lang === 'en' ? 'Travel dates' : 'Taariikhaha Safarka'}</p>
                     <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                       <input type="checkbox" checked={isOneWay} onChange={(e) => setIsOneWay(e.target.checked)} />
                       {lang === 'en' ? 'One-way trip' : 'Hal Taraf'}
@@ -251,22 +258,22 @@ export default function InquiryPage() {
                 </div>
 
                 {/* Notes */}
-                <div className="flex flex-col gap-1.5">
+                <div className={cn(SECTION_CLS, 'gap-1.5')}>
                   <Label htmlFor="notes" className={LABEL_CLS}>{lang === 'en' ? 'Additional notes (optional)' : 'Faallo Dheeraad Ah'}</Label>
                   <Textarea id="notes" variant="underline" value={form.notes} onChange={set('notes')} rows={3}
                     placeholder={lang === 'en' ? 'e.g. Prefer morning flights, specific airline...' : 'Tusaale: Dulimaadka subaxda...'} />
                 </div>
 
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && <p className="text-sm text-destructive mt-6">{error}</p>}
               </CardContent>
             </Card>
 
-            <Card className="text-center py-8">
+            <Card className="text-center py-12">
               <CardContent>
-                <h3 className="font-display text-lg font-bold text-foreground mb-2">
+                <h3 className="font-display text-2xl font-bold text-foreground mb-3">
                   {lang === 'en' ? 'Ready to find your flight?' : 'Ma diyaar baad u tahay?'}
                 </h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+                <p className="text-base text-muted-foreground max-w-md mx-auto mb-8">
                   {lang === 'en'
                     ? 'Once you submit, our agents search all available airlines and contact you via WhatsApp within 2 hours.'
                     : 'Markaad dirto, wakiiladeenna ayaa raadinaya dhamaan dulimaadyada oo kuugu soo wacaya 2 saac gudahood.'}
