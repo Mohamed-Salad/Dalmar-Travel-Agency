@@ -35,14 +35,18 @@ const SERVICES: { icon: LucideIcon; title: string; desc: string }[] = [
   },
 ]
 
-function IconFeatureCard({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
+/** A departure-board row, not another icon-circle card — Schiphol's own
+ * pictograms sit in square panels, not soft circles. */
+function ServiceRow({ icon: Icon, title, desc }: { icon: LucideIcon; title: string; desc: string }) {
   return (
-    <div className="flex flex-col items-start text-left">
-      <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="flex items-start gap-4 py-5 border-t border-dashed border-border first:border-t-0">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
         <Icon className="size-5" />
       </div>
-      <h3 className="font-display text-lg font-bold text-foreground">{title}</h3>
-      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+      <div>
+        <h3 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">{title}</h3>
+        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">{desc}</p>
+      </div>
     </div>
   )
 }
@@ -117,14 +121,14 @@ export default function LandingPage() {
       </section>
       <FlightDivider />
 
-      {/* Services */}
+      {/* Services — a departure-board row list, not an icon-circle grid */}
       <section id="services" className="mx-auto max-w-6xl px-6 py-16">
-        <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-10">
+        <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-8">
           Why book with Dalmar
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+        <div className="max-w-2xl">
           {SERVICES.map((s) => (
-            <IconFeatureCard key={s.title} {...s} />
+            <ServiceRow key={s.title} {...s} />
           ))}
         </div>
       </section>
