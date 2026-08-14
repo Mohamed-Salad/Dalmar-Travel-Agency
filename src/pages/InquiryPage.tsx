@@ -84,7 +84,7 @@ export default function InquiryPage() {
 
   if (step === 'success') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-background">
+      <div className="theme-schiphol dot-field min-h-screen flex flex-col items-center justify-center px-6 bg-background text-foreground">
         <Card className="max-w-md w-full text-center p-4">
           <CardContent className="items-center">
             <h1 className="font-display text-xl font-bold text-foreground mb-2">
@@ -105,7 +105,7 @@ export default function InquiryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="theme-schiphol dot-field min-h-screen bg-background text-foreground">
       <SiteHeader variant="minimal" />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
