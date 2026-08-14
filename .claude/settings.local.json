@@ -25,7 +25,6 @@
   "enabledMcpjsonServers": [
     "supabase",
     "shadcn",
-    "mui-mcp",
-    "chakra-ui"
+    "stitch"
   ]
 }

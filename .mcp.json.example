@@ -4,21 +4,19 @@
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=fqcadvmkxhxbjvrqkgpv"
     },
+    "stitch": {
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "REPLACE_WITH_YOUR_STITCH_API_KEY"
+      }
+    },
     "shadcn": {
       "command": "npx",
       "args": [
         "shadcn@latest",
         "mcp"
       ]
-    },
-     "mui-mcp": {
-    "type": "stdio",
-    "command": "npx",
-    "args": ["-y", "@mui/mcp@latest"]
-  },
-  "chakra-ui": {
-      "command": "npx",
-      "args": ["-y", "@chakra-ui/react-mcp"]
     }
   }
 }

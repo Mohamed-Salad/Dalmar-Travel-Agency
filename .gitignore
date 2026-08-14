@@ -32,3 +32,7 @@ npm-debug.log*
 .claude/Memory.md
 .claude/PLANNING.md
 .claude/sessions/
+
+# MCP config holds a real API key (Stitch) — never commit it.
+# .mcp.json.example documents the shape for a fresh clone.
+.mcp.json
