@@ -59,10 +59,16 @@ export default function InquiryPage() {
         .insert({ id: customerId, name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null })
       if (cErr) throw cErr
 
+      // Strip the "(CODE)" suffix if the customer picked a suggestion from the
+      // datalist — keeps stored city names consistent with QuotePage's format
+      // (agents shouldn't see "Mogadishu (MGQ)" on some rows and "Mogadishu" on
+      // others depending on which form the request came in through).
+      const cleanCity = (v: string) => v.replace(/\s*\(.*?\)\s*$/, '').trim() || v.trim()
+
       const { error: rErr } = await supabase.from('booking_requests').insert({
         customer_id: customerId,
-        departure_city: form.departure_city.trim(),
-        destination_city: form.destination_city.trim(),
+        departure_city: cleanCity(form.departure_city),
+        destination_city: cleanCity(form.destination_city),
         earliest_departure: form.earliest_departure,
         latest_departure: form.latest_departure,
         earliest_return: isOneWay ? null : form.earliest_return || null,
