@@ -27,7 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="theme-schiphol dot-field min-h-screen flex flex-col bg-background text-foreground">
       <SiteHeader variant="minimal" showAgentLink={false} />
 
       <div className="flex-1 flex items-center justify-center px-6 py-16">
