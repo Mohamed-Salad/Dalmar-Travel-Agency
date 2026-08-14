@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
-
-const CITIES = ['Hargeisa (HGA)', 'Mogadishu (MGQ)', 'Dubai (DXB)', 'Istanbul (IST)', 'London (LHR)', 'Nairobi (NBO)', 'Addis Ababa (ADD)', 'Jeddah (JED)', 'Cairo (CAI)'];
+import { CITIES } from '../lib/cities';
 
 type Lang = 'en' | 'so';
 const L: Record<string, Record<Lang, string>> = {

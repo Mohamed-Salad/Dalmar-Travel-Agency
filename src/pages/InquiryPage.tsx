@@ -10,6 +10,7 @@ import { PassengerCounter } from '@/components/inquiry/PassengerCounter'
 import { Stripe } from '@/components/ui/stripe'
 import { SiteHeader } from '@/components/ui/site-header'
 import { cn } from '@/lib/utils'
+import { CITIES } from '@/lib/cities'
 
 const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
 const EYEBROW_CLS = 'font-mono text-xs font-bold uppercase tracking-widest text-primary'
@@ -17,12 +18,6 @@ const SECTION_CLS = 'flex flex-col gap-4 pt-8 mt-8 border-t border-dashed border
 
 type Step = 'form' | 'success'
 type Lang = 'en' | 'so'
-
-const CITIES = [
-  'Mogadishu (MGQ)', 'Hargeisa (HGA)', 'Nairobi (NBO)', 'Dubai (DXB)',
-  'Addis Ababa (ADD)', 'London (LHR)', 'Istanbul (IST)', 'Jeddah (JED)',
-  'Riyadh (RUH)', 'Djibouti (JIB)', 'Dar es Salaam (DAR)', 'Doha (DOH)',
-]
 
 const PASSENGER_TYPES = [
   { key: 'adults', en: 'Adults', so: 'Waaweyn', sub: '16+', min: 1 },
