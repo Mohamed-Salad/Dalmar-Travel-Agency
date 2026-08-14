@@ -103,14 +103,27 @@
 }
 
 /* Sparse dot field, site-wide on the Schiphol theme — reads as stars or a
-   route network, deliberately not literal/animated (Schiphol's signage
-   language is functional, not atmospheric). background-attachment: fixed
-   gives it depth via parallax (stars stay put, page scrolls over them)
-   without resorting to literal 3D — degrades gracefully where unsupported. */
+   route network. background-attachment: fixed gives it depth via parallax
+   (stars stay put, page scrolls over them) without resorting to literal 3D.
+   A slow diagonal drift (not a particle-effect twinkle — that reads as the
+   generic AI-landing-page starfield we're trying to avoid) gives a "flying
+   through the night sky" feel instead of "static texture". 480px = 10x the
+   48px tile, so the loop is seamless. Respects prefers-reduced-motion. */
 .dot-field {
   background-image: radial-gradient(circle, rgba(245,243,236,0.35) 1px, transparent 1px);
   background-size: 48px 48px;
   background-attachment: fixed;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dot-field {
+    animation: dot-drift 140s linear infinite;
+  }
+}
+
+@keyframes dot-drift {
+  from { background-position: 0 0; }
+  to { background-position: 480px 480px; }
 }
 
 .material-symbols-outlined {
