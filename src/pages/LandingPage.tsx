@@ -3,32 +3,17 @@ import { Plane, Percent, Languages, type LucideIcon } from "lucide-react"
 import { SiteHeader } from "@/components/ui/site-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Stripe } from "@/components/ui/stripe"
-import { RouteChip } from "@/components/ui/route-chip"
+import { Badge } from "@/components/ui/badge"
 import { Stat } from "@/components/ui/stat"
-
-const HERO_ROUTES = [
-  { from: "MGQ", to: "DXB" },
-  { from: "NBO", to: "IST" },
-  { from: "HGA", to: "JED" },
-]
 
 const REGIONS = [
   {
-    name: "East Africa",
-    routes: [
-      { from: "MGQ", to: "NBO" },
-      { from: "MGQ", to: "HGA" },
-      { from: "MGQ", to: "JIB" },
-    ],
+    name: "Africa",
+    desc: "Most of what we book — Mogadishu to Nairobi, Hargeisa, Addis Ababa, and every major hub across the continent.",
   },
   {
     name: "Middle East",
-    routes: [
-      { from: "MGQ", to: "DXB" },
-      { from: "MGQ", to: "JED" },
-      { from: "MGQ", to: "IST" },
-    ],
+    desc: "Dubai, Jeddah, Doha, Istanbul, and the rest of the region.",
   },
 ]
 
@@ -62,13 +47,24 @@ function IconFeatureCard({ icon: Icon, title, desc }: { icon: LucideIcon; title:
   )
 }
 
+/** Section boundary: a flight path, not an unexplained color band. */
+function FlightDivider() {
+  return (
+    <div className="mx-auto max-w-6xl px-6 flex items-center gap-4 py-2" aria-hidden="true">
+      <div className="flex-1 border-t border-dashed border-border" />
+      <Plane className="size-4 shrink-0 -rotate-45 text-primary" />
+      <div className="flex-1 border-t border-dashed border-border" />
+    </div>
+  )
+}
+
 export default function LandingPage() {
   return (
-    <div className="bg-background">
+    <div className="theme-schiphol dot-field bg-background text-foreground">
       <SiteHeader variant="marketing" />
 
-      {/* Hero — ink band, big display type, no stock photo */}
-      <section className="relative bg-ink text-on-ink overflow-hidden">
+      {/* Hero — tarmac black */}
+      <section className="relative overflow-hidden">
         <div
           className="pointer-events-none absolute -top-40 -right-40 h-96 w-96 rounded-full opacity-20 blur-3xl"
           style={{ background: "radial-gradient(circle, var(--primary), transparent 70%)" }}
@@ -78,7 +74,7 @@ export default function LandingPage() {
             Book your flight home.
           </h1>
           <p className="mt-6 max-w-lg text-on-ink/80 text-base leading-relaxed">
-            Discounted fares to East Africa and the Middle East, found by an agent who
+            Discounted fares across Africa and the Middle East, found by an agent who
             knows the route — not a search engine.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -90,13 +86,19 @@ export default function LandingPage() {
             </Button>
           </div>
           <div className="mt-10 flex flex-wrap gap-2">
-            {HERO_ROUTES.map((r) => (
-              <RouteChip key={r.from + r.to} {...r} className="bg-transparent border-on-ink/15 text-on-ink" />
+            {REGIONS.map((r) => (
+              <Badge
+                key={r.name}
+                variant="outline"
+                className="font-mono text-xs h-6 px-2.5 uppercase tracking-wider bg-transparent border-on-ink/15 text-on-ink"
+              >
+                {r.name}
+              </Badge>
             ))}
           </div>
         </div>
       </section>
-      <Stripe variant="divider" />
+      <FlightDivider />
 
       {/* Trust — paper band, stat kept small/secondary, not the lead element */}
       <section id="trust" className="mx-auto max-w-6xl px-6 py-16">
@@ -113,7 +115,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-      <Stripe variant="divider" />
+      <FlightDivider />
 
       {/* Services */}
       <section id="services" className="mx-auto max-w-6xl px-6 py-16">
@@ -127,33 +129,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Routes we fly — compact, grouped by region */}
+      {/* Routes we fly — broad regions, not an enumerated (and implicitly limited) list */}
       <section id="routes" className="mx-auto max-w-6xl px-6 pb-16">
         <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">
           Routes we fly
         </h2>
-        <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
           {REGIONS.map((region) => (
-            <div key={region.name} className="flex flex-wrap items-center gap-3">
-              <span className="w-28 shrink-0 text-sm font-semibold text-muted-foreground">{region.name}</span>
-              <div className="flex flex-wrap gap-2">
-                {region.routes.map((r) => (
-                  <RouteChip key={r.from + r.to} {...r} />
-                ))}
-              </div>
+            <div key={region.name}>
+              <h3 className="font-display text-xl font-bold text-primary">{region.name}</h3>
+              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{region.desc}</p>
             </div>
           ))}
         </div>
       </section>
-      <Stripe variant="divider" />
+      <FlightDivider />
 
       {/* WhatsApp CTA */}
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <Card className="bg-ink text-on-ink ring-0 border-0">
+        <Card>
           <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <h3 className="font-display text-lg font-bold text-on-ink">Need instant support?</h3>
-              <p className="text-sm text-on-ink/70 mt-1">Message an agent directly on WhatsApp.</p>
+              <h3 className="font-display text-lg font-bold text-foreground">Need instant support?</h3>
+              <p className="text-sm text-muted-foreground mt-1">Message an agent directly on WhatsApp.</p>
             </div>
             <Button
               asChild
@@ -175,16 +173,16 @@ export default function LandingPage() {
         </Card>
       </section>
 
-      {/* Footer — ink band, text wordmark only */}
-      <footer className="bg-ink text-on-ink">
+      {/* Footer — text wordmark only */}
+      <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-12 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <div className="font-display font-bold">Dalmar Travel</div>
-            <p className="text-sm text-on-ink/70 mt-1">Discounted airfare, 10+ years serving the community.</p>
+            <p className="text-sm text-muted-foreground mt-1">Discounted airfare, 10+ years serving the community.</p>
           </div>
-          <div className="flex items-center gap-6 text-sm text-on-ink/70">
-            <Link to="/inquiry" className="hover:text-on-ink transition-colors">Make an inquiry</Link>
-            <Link to="/login" className="hover:text-on-ink transition-colors">Agent login</Link>
+          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/inquiry" className="hover:text-foreground transition-colors">Make an inquiry</Link>
+            <Link to="/login" className="hover:text-foreground transition-colors">Agent login</Link>
           </div>
         </div>
       </footer>

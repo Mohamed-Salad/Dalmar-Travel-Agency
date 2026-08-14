@@ -68,6 +68,51 @@
   --font-mono: var(--font-mono);
 }
 
+/* Landing-only theme: Schiphol's 1967 signage system (Total Design, Benno
+   Wissing) — black concourse walls, bold yellow Univers wayfinding type.
+   Scoped to .theme-schiphol (applied to LandingPage's root) rather than
+   :root, so Inquiry/Login keep the paper/ink/saffron "ledger" look. Same
+   token names as :root — Button/Card/Badge/Stripe/RouteChip all repaint
+   for free wherever this class wraps them. */
+.theme-schiphol {
+  --background: #0d0d0d;         /* tarmac */
+  --foreground: #f5f3ec;         /* chalk */
+  --card: #1a1a1a;                /* board — one step up from tarmac */
+  --card-foreground: #f5f3ec;
+  --popover: #1a1a1a;
+  --popover-foreground: #f5f3ec;
+
+  --primary: #ffc72c;            /* signal — Schiphol signage yellow */
+  --primary-foreground: #0d0d0d; /* ink-on-yellow, matches real signage */
+  --secondary: #242424;
+  --secondary-foreground: #f5f3ec;
+  --muted: #242424;
+  --muted-foreground: #9a9a9a;   /* runway */
+  --accent: #242424;
+  --accent-foreground: #f5f3ec;
+  --destructive: #e0483e;
+
+  --border: #333333;
+  --input: #333333;
+  --ring: #ffc72c;
+
+  --ink: #000000;
+  --on-ink: #f5f3ec;
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+/* Sparse dot field, site-wide on the Schiphol theme — reads as stars or a
+   route network, deliberately not literal/animated (Schiphol's signage
+   language is functional, not atmospheric). background-attachment: fixed
+   gives it depth via parallax (stars stay put, page scrolls over them)
+   without resorting to literal 3D — degrades gracefully where unsupported. */
+.dot-field {
+  background-image: radial-gradient(circle, rgba(245,243,236,0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-attachment: fixed;
+}
+
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   display: inline-block;
