@@ -169,17 +169,17 @@ export default function InquiryPage() {
                   <p className={EYEBROW_CLS}>{lang === 'en' ? 'Contact' : 'Xiriirka'}</p>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="name" className={LABEL_CLS}>{lang === 'en' ? 'Full name' : 'Magacaaga Buuxa'}</Label>
-                    <Input id="name" required variant="underline" value={form.name} onChange={set('name')}
+                    <Input id="name" required autoComplete="name" variant="underline" value={form.name} onChange={set('name')}
                       placeholder={lang === 'en' ? 'e.g. Faadumo Warsame' : 'Tusaale: Faadumo Warsame'} />
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="phone" className={LABEL_CLS}>{lang === 'en' ? 'Phone / WhatsApp' : 'Telefoon'}</Label>
-                      <Input id="phone" required type="tel" variant="underline" value={form.phone} onChange={set('phone')} placeholder="+252 ..." />
+                      <Input id="phone" required type="tel" autoComplete="tel" variant="underline" value={form.phone} onChange={set('phone')} placeholder="+252 ..." />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="email" className={LABEL_CLS}>{lang === 'en' ? 'Email (optional)' : 'Email (ikhtiyaari)'}</Label>
-                      <Input id="email" type="email" variant="underline" value={form.email} onChange={set('email')} placeholder="email@example.com" />
+                      <Input id="email" type="email" autoComplete="email" variant="underline" value={form.email} onChange={set('email')} placeholder="email@example.com" />
                     </div>
                   </div>
                 </div>

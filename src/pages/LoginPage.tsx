@@ -47,12 +47,12 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="email" className={LABEL_CLS}>Email</Label>
-                  <Input id="email" required type="email" variant="underline" value={email}
+                  <Input id="email" required type="email" autoComplete="email" variant="underline" value={email}
                     onChange={(e) => setEmail(e.target.value)} placeholder="agent@dalmartravel.com" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="password" className={LABEL_CLS}>Password</Label>
-                  <Input id="password" required type="password" variant="underline" value={password}
+                  <Input id="password" required type="password" autoComplete="current-password" variant="underline" value={password}
                     onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                 </div>
                 {error && (

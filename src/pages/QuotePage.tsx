@@ -194,18 +194,18 @@ export default function QuotePage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <label style={lbl}>Customer Name</label>
-                <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Full name" style={inp} />
+                <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Full name" autoComplete="name" style={inp} />
               </div>
               <div>
                 <label style={lbl}>{tr('phone', lang)}</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>phone</span>
-                  <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+252 …" type="tel" style={{ ...inp, paddingLeft: '36px' }} />
+                  <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+252 …" type="tel" autoComplete="tel" style={{ ...inp, paddingLeft: '36px' }} />
                 </div>
               </div>
               <div>
                 <label style={lbl}>{tr('email', lang)}</label>
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" type="email" style={inp} />
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" type="email" autoComplete="email" style={inp} />
               </div>
             </div>
 
