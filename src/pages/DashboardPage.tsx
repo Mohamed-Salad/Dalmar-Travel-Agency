@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Ticket, Timer, Wallet, Printer, Download } from 'lucide-react';
+import { Ticket, Timer, Wallet, Printer, CreditCard, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
 import type { BookingRequest, Customer, Booking } from '../types';
@@ -25,7 +25,7 @@ function initials(name: string) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<RequestWithCustomer[]>([]);
-  const [bookings, setBookings] = useState<Pick<Booking, 'payment_status' | 'ticket_sent'>[]>([]);
+  const [bookings, setBookings] = useState<Pick<Booking, 'payment_status' | 'ticket_sent' | 'card_made'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentName, setAgentName] = useState('');
   const [filter, setFilter] = useState('All Statuses');
@@ -39,7 +39,7 @@ export default function DashboardPage() {
       if (agent) setAgentName(agent.name);
       const [{ data: reqData }, { data: bookingData }] = await Promise.all([
         supabase.from('booking_requests').select('*, customers(*)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('bookings').select('payment_status, ticket_sent'),
+        supabase.from('bookings').select('payment_status, ticket_sent, card_made'),
       ]);
       if (reqData) setRequests(reqData as RequestWithCustomer[]);
       if (bookingData) setBookings(bookingData);
@@ -69,6 +69,7 @@ export default function DashboardPage() {
     expiring: requests.filter((r) => r.status === 'pending').length,
     paymentsPending: bookings.filter((b) => b.payment_status === 'unpaid').length,
     ticketsToPrint: bookings.filter((b) => b.payment_status === 'paid' && !b.ticket_sent).length,
+    cardsToMake: bookings.filter((b) => !b.card_made).length,
   };
 
   const STATS = [
@@ -76,6 +77,7 @@ export default function DashboardPage() {
     { label: 'Expiring today', value: counts.expiring, icon: Timer, urgent: true, onClick: () => filterTable('Pending') },
     { label: 'Payments pending', value: counts.paymentsPending, icon: Wallet, onClick: () => navigate('/customers') },
     { label: 'Tickets to print', value: counts.ticketsToPrint, icon: Printer, onClick: () => navigate('/customers') },
+    { label: 'TAAMS cards to make', value: counts.cardsToMake, icon: CreditCard, onClick: () => navigate('/customers') },
   ];
 
   return (
@@ -95,7 +97,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats — click through to the filtered data */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
         {STATS.map((s) => (
           <button key={s.label} type="button" onClick={s.onClick} className="text-left">
             <Card className="transition-colors hover:border-primary/40">
