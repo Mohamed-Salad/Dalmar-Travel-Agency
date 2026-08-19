@@ -11,14 +11,14 @@ import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 type RequestWithCustomer = BookingRequest & { customers: Customer };
 
-const STATUS_BADGE: Record<string, string> = {
+export const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-amber-500/10 text-amber-600',
   responded: 'bg-sky-500/10 text-sky-500',
   booked:    'bg-emerald-500/10 text-emerald-500',
   cancelled: 'bg-destructive/10 text-destructive',
 };
 
-function initials(name: string) {
+export function initials(name: string) {
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
