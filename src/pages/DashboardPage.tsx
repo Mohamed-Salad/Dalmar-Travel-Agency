@@ -55,6 +55,21 @@ export default function DashboardPage() {
     setRequests((r) => r.map((req) => (req.id === id ? { ...req, claimed_by_agent_id: user.id } : req)));
   }
 
+  function dispatchToGroup(req: RequestWithCustomer) {
+    const name = req.customers?.name ?? 'Unknown';
+    const phone = req.customers?.phone ?? '';
+    const pax = [
+      req.adults > 0 && `${req.adults} Adult${req.adults > 1 ? 's' : ''}`,
+      req.youth > 0 && `${req.youth} Youth`,
+      req.children > 0 && `${req.children} Child${req.children > 1 ? 'ren' : ''}`,
+      req.infants > 0 && `${req.infants} Infant${req.infants > 1 ? 's' : ''}`,
+    ].filter(Boolean).join(', ') || '1 Adult';
+    const msg = encodeURIComponent(
+      `New booking request\n${name} — ${phone}\n${req.departure_city} → ${req.destination_city}\n${req.earliest_departure} – ${req.latest_departure}\n${pax}\n\nReply here to claim, then mark it Claimed on the Dashboard.`
+    );
+    window.open(`https://wa.me/?text=${msg}`, '_blank');
+  }
+
   function filterTable(status: string) {
     setFilter(status);
     tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -193,7 +208,13 @@ export default function DashboardPage() {
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         {!req.claimed_by_agent_id && req.status === 'pending' && (
-                          <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
+                          <>
+                            <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
+                            <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
+                              <WhatsAppIcon className="size-3.5 text-[#25D366]" />
+                              Dispatch
+                            </Button>
+                          </>
                         )}
                         <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
                           <a href={`https://wa.me/${phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
