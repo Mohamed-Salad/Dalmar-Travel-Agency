@@ -4,6 +4,14 @@ import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
 import { CITIES } from '../lib/cities';
 import { parseQuickCapture } from '../lib/quoteCapture';
+import { PassengerCounter } from '@/components/inquiry/PassengerCounter';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { PlaneTakeoff, PlaneLanding, Phone, CheckCircle2, AlertCircle, ShieldCheck, Repeat } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type Lang = 'en' | 'so';
 const L: Record<string, Record<Lang, string>> = {
@@ -17,10 +25,10 @@ const L: Record<string, Record<Lang, string>> = {
   lateDep:    { en: 'Latest Departure',                                        so: 'Taariikhda Ugu Dambeeysa' },
   earlyRet:   { en: 'Earliest Return',                                         so: 'Taariikhda Noqoshada Ugu Horreysa' },
   lateRet:    { en: 'Latest Return',                                           so: 'Taariikhda Noqoshada Ugu Dambeeysa' },
-  adults:     { en: 'Adults (16+)',                                            so: 'Waaweyn (16+)' },
-  youth:      { en: 'Youth (12–15)',                                           so: 'Dhalinyaro (12–15)' },
-  children:   { en: 'Children (2–11)',                                         so: 'Carruur (2–11)' },
-  infants:    { en: 'Infants (0–2)',                                           so: 'Ilmo yar (0–2)' },
+  adults:     { en: 'Adults',                                                  so: 'Waaweyn' },
+  youth:      { en: 'Youth',                                                   so: 'Dhalinyaro' },
+  children:   { en: 'Children',                                                so: 'Carruur' },
+  infants:    { en: 'Infants',                                                 so: 'Ilmo yar' },
   oneway:     { en: 'One Way',                                                 so: 'Hal Taraf' },
   return:     { en: 'Return',                                                  so: 'Noqosho' },
   submit:     { en: 'Submit Quote Request',                                    so: 'Dir Codsiga Qiimaha' },
@@ -30,23 +38,15 @@ const L: Record<string, Record<Lang, string>> = {
 
 function tr(key: string, lang: Lang) { return L[key]?.[lang] ?? key; }
 
-function Counter({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-lg"
-      style={{ background: 'var(--surface-container-low)', border: '1px solid var(--outline-variant)' }}>
-      <span className="text-sm" style={{ color: 'var(--on-surface)' }}>{label}</span>
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => onChange(Math.max(0, value - 1))}
-          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"
-          style={{ background: 'var(--surface-container)', color: 'var(--on-surface)' }}>−</button>
-        <span className="w-5 text-center font-bold" style={{ color: 'var(--primary)' }}>{value}</span>
-        <button type="button" onClick={() => onChange(value + 1)}
-          className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"
-          style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>+</button>
-      </div>
-    </div>
-  );
-}
+const PASSENGER_TYPES = [
+  { key: 'adults', sub: '16+' },
+  { key: 'youth', sub: '12–15' },
+  { key: 'children', sub: '2–11' },
+  { key: 'infants', sub: '0–2' },
+] as const;
+
+const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+const AUTO_FILLED_CLS = 'border-l-2 border-l-primary pl-2';
 
 export default function QuotePage() {
   const navigate = useNavigate();
@@ -179,208 +179,180 @@ export default function QuotePage() {
     setTimeout(() => navigate('/dashboard'), 2500);
   }
 
-  const inp = {
-    background: 'var(--surface)',
-    border: '1px solid var(--outline-variant)',
-    color: 'var(--on-surface)',
-    borderRadius: '4px',
-    padding: '8px 12px',
-    fontSize: '14px',
-    width: '100%',
-    outline: 'none',
-  };
-
-  const lbl: React.CSSProperties = {
-    display: 'block',
-    fontSize: '12px',
-    fontWeight: 600,
-    marginBottom: '4px',
-    color: 'var(--on-surface-variant)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-  };
+  const passengerValues = { adults, youth, children, infants };
+  const passengerSetters = { adults: setAdults, youth: setYouth, children: setChildren, infants: setInfants };
 
   return (
     <AppShell agentName={agentName}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header + Language Toggle */}
-        <div className="flex justify-between items-start mb-6 gap-4">
+      <div className="mx-auto max-w-4xl">
+        {/* Header + language toggle */}
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-[32px] font-bold" style={{ color: 'var(--primary)' }}>{tr('title', lang)}</h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>{tr('subtitle', lang)}</p>
+            <h1 className="font-display text-3xl font-bold text-foreground">{tr('title', lang)}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{tr('subtitle', lang)}</p>
           </div>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl shrink-0"
-            style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>
-            <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--secondary-fixed)' }}>translate</span>
-            <div className="flex rounded overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.2)' }}>
-              {(['en', 'so'] as Lang[]).map(l => (
-                <button key={l} type="button" onClick={() => setLang(l)}
-                  className="px-3 py-1 text-[12px] font-bold uppercase transition-colors"
-                  style={{ background: lang === l ? 'var(--secondary-fixed)' : 'transparent', color: lang === l ? 'var(--on-secondary-fixed)' : 'rgba(255,255,255,0.7)' }}>
-                  {l === 'en' ? 'English' : 'Soomaali'}
-                </button>
-              ))}
-            </div>
+          <div className="flex overflow-hidden rounded-md border border-border">
+            {(['en', 'so'] as Lang[]).map((l) => (
+              <button key={l} type="button" onClick={() => setLang(l)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-bold uppercase transition-colors',
+                  lang === l ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                )}>
+                {l === 'en' ? 'English' : 'Soomaali'}
+              </button>
+            ))}
           </div>
         </div>
 
         {success && (
-          <div className="mb-6 p-4 rounded-xl text-sm font-semibold flex items-center gap-3"
-            style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}>
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+          <div className="mb-6 flex items-center gap-3 rounded-lg bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-600">
+            <CheckCircle2 className="size-5" />
             Quote request submitted! Redirecting to dashboard…
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-4 rounded-xl text-sm font-semibold flex items-center gap-3"
-            style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>error</span>
+          <div className="mb-6 flex items-center gap-3 rounded-lg bg-destructive/10 p-4 text-sm font-semibold text-destructive">
+            <AlertCircle className="size-5" />
             {error}
           </div>
         )}
 
-        <div className="glass-card rounded-xl p-6 mb-6 space-y-3">
-          <label style={lbl}>Quick Capture — one note per line</label>
-          <textarea
-            value={captureText}
-            onChange={(e) => setCaptureText(e.target.value)}
-            rows={4}
-            placeholder={'Maryan Warsame\n0615123456\nMogadishu to Nairobi\n10-15 Sept\n2A 1Y'}
-            style={{ ...inp, resize: 'vertical' }}
-          />
-          <button
-            type="button"
-            onClick={handleFillForm}
-            className="px-4 py-2 rounded text-sm font-semibold"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-          >
-            Fill Form
-          </button>
-        </div>
+        {/* Quick Capture */}
+        <Card className="mb-6">
+          <CardContent className="space-y-3">
+            <Label className={LABEL_CLS}>Quick Capture — one note per line</Label>
+            <Textarea
+              value={captureText}
+              onChange={(e) => setCaptureText(e.target.value)}
+              rows={4}
+              placeholder={'Maryan Warsame\n0615123456\nMogadishu to Nairobi\n10-15 Sept\n2A 1Y'}
+            />
+            <Button type="button" onClick={handleFillForm}>Fill Form</Button>
+          </CardContent>
+        </Card>
 
         <form onSubmit={handleSubmit}>
-          <div className="glass-card rounded-xl p-6 space-y-6">
-            {/* Trip Type */}
-            <div className="flex gap-3">
-              {(['oneway', 'return'] as const).map(type => (
-                <button key={type} type="button" onClick={() => setTripType(type)}
-                  className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold transition-all"
-                  style={{
-                    background: tripType === type ? 'var(--primary)' : 'var(--surface-container-low)',
-                    color: tripType === type ? 'var(--on-primary)' : 'var(--on-surface-variant)',
-                    border: `1px solid ${tripType === type ? 'var(--primary)' : 'var(--outline-variant)'}`,
-                  }}>
-                  <span className="material-symbols-outlined text-[16px]">{type === 'oneway' ? 'flight_takeoff' : 'sync_alt'}</span>
-                  {tr(type, lang)}
-                </button>
-              ))}
-            </div>
-
-            {/* Customer Info */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label style={lbl}>Customer Name</label>
-                <input value={customerName} onChange={e => { setCustomerName(e.target.value); clearMark('customerName'); }} placeholder="Full name" autoComplete="name"
-                  style={autoFilled.has('customerName') ? { ...inp, borderLeft: '3px solid var(--primary)' } : inp} />
+          <Card>
+            <CardContent className="space-y-6">
+              {/* Trip type */}
+              <div className="flex gap-3">
+                {(['oneway', 'return'] as const).map((type) => (
+                  <Button key={type} type="button" variant={tripType === type ? 'default' : 'outline'}
+                    onClick={() => setTripType(type)}>
+                    {type === 'oneway' ? <PlaneTakeoff className="size-4" /> : <Repeat className="size-4" />}
+                    {tr(type, lang)}
+                  </Button>
+                ))}
               </div>
-              <div>
-                <label style={lbl}>{tr('phone', lang)}</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>phone</span>
-                  <input value={phone} onChange={e => { setPhone(e.target.value); clearMark('phone'); }} placeholder="+252 …" type="tel" autoComplete="tel"
-                    style={autoFilled.has('phone') ? { ...inp, paddingLeft: '36px', borderLeft: '3px solid var(--primary)' } : { ...inp, paddingLeft: '36px' }} />
+
+              {/* Customer info */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>Customer Name</Label>
+                  <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); clearMark('customerName'); }}
+                    placeholder="Full name" autoComplete="name"
+                    className={autoFilled.has('customerName') ? AUTO_FILLED_CLS : undefined} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('phone', lang)}</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={phone} onChange={(e) => { setPhone(e.target.value); clearMark('phone'); }}
+                      placeholder="+252 …" type="tel" autoComplete="tel"
+                      className={cn('pl-8', autoFilled.has('phone') && AUTO_FILLED_CLS)} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('email', lang)}</Label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" type="email" autoComplete="email" />
                 </div>
               </div>
-              <div>
-                <label style={lbl}>{tr('email', lang)}</label>
-                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" type="email" autoComplete="email" style={inp} />
-              </div>
-            </div>
 
-            {/* Route */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label style={lbl}>{tr('from', lang)}</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>flight_takeoff</span>
-                  <input value={from} onChange={e => { setFrom(e.target.value); clearMark('from'); }} list="cities-from" placeholder="From where?" required
-                    style={autoFilled.has('from') ? { ...inp, paddingLeft: '36px', borderLeft: '3px solid var(--primary)' } : { ...inp, paddingLeft: '36px' }} />
-                  <datalist id="cities-from">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
-                </div>
-              </div>
-              <div>
-                <label style={lbl}>{tr('to', lang)}</label>
-                <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: 'var(--outline)' }}>flight_land</span>
-                  <input value={to} onChange={e => { setTo(e.target.value); clearMark('to'); }} list="cities-to" placeholder="To where?" required
-                    style={autoFilled.has('to') ? { ...inp, paddingLeft: '36px', borderLeft: '3px solid var(--primary)' } : { ...inp, paddingLeft: '36px' }} />
-                  <datalist id="cities-to">{CITIES.map(c => <option key={c} value={c} />)}</datalist>
-                </div>
-              </div>
-            </div>
-
-            {/* Departure Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label style={lbl}>{tr('earlyDep', lang)}</label>
-                <input type="date" value={earlyDep} onChange={e => { setEarlyDep(e.target.value); clearMark('earlyDep'); }} required
-                  style={autoFilled.has('earlyDep') ? { ...inp, borderLeft: '3px solid var(--primary)' } : inp} />
-              </div>
-              <div>
-                <label style={lbl}>{tr('lateDep', lang)}</label>
-                <input type="date" value={lateDep} onChange={e => { setLateDep(e.target.value); clearMark('lateDep'); }}
-                  style={autoFilled.has('lateDep') ? { ...inp, borderLeft: '3px solid var(--primary)' } : inp} />
-              </div>
-            </div>
-
-            {/* Return Dates */}
-            {tripType === 'return' && (
+              {/* Route */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label style={lbl}>{tr('earlyRet', lang)}</label>
-                  <input type="date" value={earlyRet} onChange={e => { setEarlyRet(e.target.value); clearMark('earlyRet'); }}
-                    style={autoFilled.has('earlyRet') ? { ...inp, borderLeft: '3px solid var(--primary)' } : inp} />
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('from', lang)}</Label>
+                  <div className="relative">
+                    <PlaneTakeoff className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={from} onChange={(e) => { setFrom(e.target.value); clearMark('from'); }}
+                      list="cities-from" placeholder="From where?" required
+                      className={cn('pl-8', autoFilled.has('from') && AUTO_FILLED_CLS)} />
+                    <datalist id="cities-from">{CITIES.map((c) => <option key={c} value={c} />)}</datalist>
+                  </div>
                 </div>
-                <div>
-                  <label style={lbl}>{tr('lateRet', lang)}</label>
-                  <input type="date" value={lateRet} onChange={e => { setLateRet(e.target.value); clearMark('lateRet'); }}
-                    style={autoFilled.has('lateRet') ? { ...inp, borderLeft: '3px solid var(--primary)' } : inp} />
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('to', lang)}</Label>
+                  <div className="relative">
+                    <PlaneLanding className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input value={to} onChange={(e) => { setTo(e.target.value); clearMark('to'); }}
+                      list="cities-to" placeholder="To where?" required
+                      className={cn('pl-8', autoFilled.has('to') && AUTO_FILLED_CLS)} />
+                    <datalist id="cities-to">{CITIES.map((c) => <option key={c} value={c} />)}</datalist>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Passenger Counters */}
-            <div>
-              <label style={{ ...lbl, marginBottom: '12px' }}>Passengers</label>
-              <div className="grid grid-cols-2 gap-3">
-                <Counter label={tr('adults', lang)} value={adults} onChange={(v) => { setAdults(v); clearMark('adults'); }} />
-                <Counter label={tr('youth', lang)} value={youth} onChange={(v) => { setYouth(v); clearMark('youth'); }} />
-                <Counter label={tr('children', lang)} value={children} onChange={(v) => { setChildren(v); clearMark('children'); }} />
-                <Counter label={tr('infants', lang)} value={infants} onChange={(v) => { setInfants(v); clearMark('infants'); }} />
+              {/* Departure dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('earlyDep', lang)}</Label>
+                  <Input type="date" value={earlyDep} onChange={(e) => { setEarlyDep(e.target.value); clearMark('earlyDep'); }} required
+                    className={autoFilled.has('earlyDep') ? AUTO_FILLED_CLS : undefined} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className={LABEL_CLS}>{tr('lateDep', lang)}</Label>
+                  <Input type="date" value={lateDep} onChange={(e) => { setLateDep(e.target.value); clearMark('lateDep'); }}
+                    className={autoFilled.has('lateDep') ? AUTO_FILLED_CLS : undefined} />
+                </div>
               </div>
-            </div>
 
-            {/* Notes */}
-            <div>
-              <label style={lbl}>{tr('notes', lang)}</label>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                placeholder="Any special requests or additional info…"
-                style={{ ...inp, resize: 'vertical' }} />
-            </div>
+              {/* Return dates */}
+              {tripType === 'return' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className={LABEL_CLS}>{tr('earlyRet', lang)}</Label>
+                    <Input type="date" value={earlyRet} onChange={(e) => { setEarlyRet(e.target.value); clearMark('earlyRet'); }}
+                      className={autoFilled.has('earlyRet') ? AUTO_FILLED_CLS : undefined} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label className={LABEL_CLS}>{tr('lateRet', lang)}</Label>
+                    <Input type="date" value={lateRet} onChange={(e) => { setLateRet(e.target.value); clearMark('lateRet'); }}
+                      className={autoFilled.has('lateRet') ? AUTO_FILLED_CLS : undefined} />
+                  </div>
+                </div>
+              )}
 
-            {/* Submit */}
-            <button type="submit" disabled={submitting || !earlyDep || !from || !to}
-              className="w-full py-4 rounded-xl font-bold text-[18px] transition-all active:scale-95 disabled:opacity-50"
-              style={{ background: 'var(--primary)', color: 'var(--on-primary)', boxShadow: '0 4px 24px rgba(0,30,64,0.25)' }}>
-              {submitting ? tr('submitting', lang) : tr('submit', lang)}
-            </button>
+              {/* Passengers */}
+              <div>
+                <Label className={cn(LABEL_CLS, 'mb-3 block')}>Passengers</Label>
+                <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                  {PASSENGER_TYPES.map(({ key, sub }) => (
+                    <PassengerCounter key={key} label={tr(key, lang)} sub={sub} min={0}
+                      value={passengerValues[key]}
+                      onChange={(v) => { passengerSetters[key](v); clearMark(key); }} />
+                  ))}
+                </div>
+              </div>
 
-            <p className="text-center text-xs flex items-center justify-center gap-2" style={{ color: 'var(--on-surface-variant)' }}>
-              <span className="material-symbols-outlined text-[16px]" style={{ color: 'var(--secondary)', fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-              Your data is secure and will only be used to provide the travel quotation.
-            </p>
-          </div>
+              {/* Notes */}
+              <div className="flex flex-col gap-1.5">
+                <Label className={LABEL_CLS}>{tr('notes', lang)}</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
+                  placeholder="Any special requests or additional info…" />
+              </div>
+
+              {/* Submit */}
+              <Button type="submit" size="lg" disabled={submitting || !earlyDep || !from || !to} className="w-full">
+                {submitting ? tr('submitting', lang) : tr('submit', lang)}
+              </Button>
+
+              <p className="flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+                <ShieldCheck className="size-4 text-primary" />
+                Your data is secure and will only be used to provide the travel quotation.
+              </p>
+            </CardContent>
+          </Card>
         </form>
       </div>
     </AppShell>
