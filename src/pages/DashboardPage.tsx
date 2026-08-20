@@ -7,10 +7,13 @@ import type { BookingRequest, Customer, Booking } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 
 type RequestWithCustomer = BookingRequest & { customers: Customer };
+type BookingRow = Pick<Booking, 'id' | 'booking_request_id' | 'payment_status' | 'ticket_sent' | 'card_made' | 'reservation_expiry'>;
 
+// Pipeline status (booking_requests.status) — used by CustomersListPage too, unchanged.
 export const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-amber-500/10 text-amber-600',
   responded: 'bg-sky-500/10 text-sky-500',
@@ -22,13 +25,37 @@ export function initials(name: string) {
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
+// Customer's-eye-view status — derived from booking_requests.status + the linked
+// bookings row, not a stored field. "Where is this traveler in their journey."
+type CustomerStatus = 'Cancelled' | 'Ticket sent' | 'Paid' | 'Reservation made' | 'Inquiry received';
+
+function customerStatus(req: BookingRequest, booking: BookingRow | undefined): CustomerStatus {
+  if (req.status === 'cancelled') return 'Cancelled';
+  if (booking?.ticket_sent) return 'Ticket sent';
+  if (booking?.payment_status === 'paid') return 'Paid';
+  if (booking) return 'Reservation made';
+  return 'Inquiry received';
+}
+
+const CUSTOMER_STATUS_BADGE: Record<CustomerStatus, string> = {
+  'Inquiry received':  'bg-sky-500/10 text-sky-500',
+  'Reservation made':  'bg-amber-500/10 text-amber-600',
+  Paid:                'bg-emerald-500/10 text-emerald-500',
+  'Ticket sent':        'bg-primary/10 text-primary',
+  Cancelled:            'bg-destructive/10 text-destructive',
+};
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<RequestWithCustomer[]>([]);
-  const [bookings, setBookings] = useState<Pick<Booking, 'payment_status' | 'ticket_sent' | 'card_made'>[]>([]);
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentName, setAgentName] = useState('');
   const [filter, setFilter] = useState('All Statuses');
+  const [reservingId, setReservingId] = useState<string | null>(null);
+  const [resPrice, setResPrice] = useState('');
+  const [resDeparture, setResDeparture] = useState('');
+  const [resExpiry, setResExpiry] = useState('');
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,7 +66,7 @@ export default function DashboardPage() {
       if (agent) setAgentName(agent.name);
       const [{ data: reqData }, { data: bookingData }] = await Promise.all([
         supabase.from('booking_requests').select('*, customers(*)').order('created_at', { ascending: false }).limit(20),
-        supabase.from('bookings').select('payment_status, ticket_sent, card_made'),
+        supabase.from('bookings').select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry'),
       ]);
       if (reqData) setRequests(reqData as RequestWithCustomer[]);
       if (bookingData) setBookings(bookingData);
@@ -48,11 +75,55 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  const bookingByRequest = new Map(bookings.map((b) => [b.booking_request_id, b]));
+
   async function claimRequest(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from('booking_requests').update({ claimed_by_agent_id: user.id }).eq('id', id);
     setRequests((r) => r.map((req) => (req.id === id ? { ...req, claimed_by_agent_id: user.id } : req)));
+  }
+
+  function openReserveForm(req: RequestWithCustomer) {
+    setReservingId(req.id);
+    setResPrice('');
+    setResDeparture(req.earliest_departure);
+    setResExpiry('');
+  }
+
+  async function confirmReservation(req: RequestWithCustomer) {
+    const price = Number(resPrice);
+    if (!price || !resDeparture) return;
+    const { data: fare, error: fareErr } = await supabase
+      .from('fare_options')
+      .insert({ booking_request_id: req.id, departure_date: resDeparture, price })
+      .select('id').single();
+    if (fareErr || !fare) return;
+    const { data: booking, error: bookingErr } = await supabase
+      .from('bookings')
+      .insert({ booking_request_id: req.id, fare_option_id: fare.id, reservation_expiry: resExpiry || null })
+      .select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry')
+      .single();
+    if (bookingErr || !booking) return;
+    await supabase.from('booking_requests').update({ status: 'booked' }).eq('id', req.id);
+    setRequests((rs) => rs.map((r) => (r.id === req.id ? { ...r, status: 'booked' } : r)));
+    setBookings((bs) => [...bs, booking]);
+    setReservingId(null);
+  }
+
+  async function markPaid(bookingId: string) {
+    await supabase.from('bookings').update({ payment_status: 'paid', payment_date: new Date().toISOString() }).eq('id', bookingId);
+    setBookings((bs) => bs.map((b) => (b.id === bookingId ? { ...b, payment_status: 'paid' } : b)));
+  }
+
+  async function markTicketSent(bookingId: string) {
+    await supabase.from('bookings').update({ ticket_sent: true }).eq('id', bookingId);
+    setBookings((bs) => bs.map((b) => (b.id === bookingId ? { ...b, ticket_sent: true } : b)));
+  }
+
+  async function markCardMade(bookingId: string) {
+    await supabase.from('bookings').update({ card_made: true }).eq('id', bookingId);
+    setBookings((bs) => bs.map((b) => (b.id === bookingId ? { ...b, card_made: true } : b)));
   }
 
   function dispatchToGroup(req: RequestWithCustomer) {
@@ -77,7 +148,7 @@ export default function DashboardPage() {
 
   const filtered = filter === 'All Statuses'
     ? requests
-    : requests.filter((r) => r.status === filter.toLowerCase());
+    : requests.filter((r) => customerStatus(r, bookingByRequest.get(r.id)) === filter);
 
   const counts = {
     active: requests.filter((r) => r.status === 'booked').length,
@@ -88,8 +159,8 @@ export default function DashboardPage() {
   };
 
   const STATS = [
-    { label: 'Active reservations', value: counts.active, icon: Ticket, onClick: () => filterTable('Booked') },
-    { label: 'Expiring today', value: counts.expiring, icon: Timer, urgent: true, onClick: () => filterTable('Pending') },
+    { label: 'Active reservations', value: counts.active, icon: Ticket, onClick: () => filterTable('Reservation made') },
+    { label: 'Expiring today', value: counts.expiring, icon: Timer, urgent: true, onClick: () => filterTable('Inquiry received') },
     { label: 'Payments pending', value: counts.paymentsPending, icon: Wallet, onClick: () => navigate('/customers') },
     { label: 'Tickets to print', value: counts.ticketsToPrint, icon: Printer, onClick: () => navigate('/customers') },
     { label: 'TAAMS cards to make', value: counts.cardsToMake, icon: CreditCard, onClick: () => navigate('/customers') },
@@ -142,7 +213,7 @@ export default function DashboardPage() {
             onChange={(e) => setFilter(e.target.value)}
             className="rounded-md border border-border bg-transparent px-3 py-1.5 text-xs text-foreground outline-none"
           >
-            {['All Statuses', 'Pending', 'Responded', 'Booked', 'Cancelled'].map((o) => (
+            {['All Statuses', 'Inquiry received', 'Reservation made', 'Paid', 'Ticket sent', 'Cancelled'].map((o) => (
               <option key={o} className="bg-card">{o}</option>
             ))}
           </select>
@@ -167,6 +238,8 @@ export default function DashboardPage() {
               ) : filtered.map((req) => {
                 const name = req.customers?.name ?? '—';
                 const phone = req.customers?.phone ?? '';
+                const booking = bookingByRequest.get(req.id);
+                const status = customerStatus(req, booking);
                 // Customer-facing message — stays Somali, ~90% of customers are Somali speakers.
                 const waMsg = encodeURIComponent(
                   `Salaan ${name},\n\nWaxaan helnay codsiyadaada safar:\n✈ ${req.departure_city} → ${req.destination_city}\n📅 ${req.earliest_departure} – ${req.latest_departure}\n\nDalmar Travel Agency`
@@ -175,10 +248,9 @@ export default function DashboardPage() {
                 return (
                   <tr
                     key={req.id}
-                    className="cursor-pointer border-b border-border transition-colors hover:bg-secondary/50"
-                    onClick={() => navigate(`/customers/${req.id}`)}
+                    className="border-b border-border transition-colors hover:bg-secondary/50"
                   >
-                    <td className="px-6 py-4">
+                    <td className="cursor-pointer px-6 py-4" onClick={() => navigate(`/customers/${req.id}`)}>
                       <div className="flex items-center gap-3">
                         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                           {initials(name)}
@@ -189,40 +261,66 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-foreground">
+                    <td className="cursor-pointer px-6 py-4 font-mono text-sm text-foreground" onClick={() => navigate(`/customers/${req.id}`)}>
                       {req.departure_city} → {req.destination_city}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-foreground">
+                    <td className="cursor-pointer px-6 py-4 font-mono text-sm text-foreground" onClick={() => navigate(`/customers/${req.id}`)}>
                       {req.earliest_departure} – {req.latest_departure}
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge className={`uppercase tracking-wide ${STATUS_BADGE[req.status] ?? STATUS_BADGE.pending}`}>
-                        {req.status}
+                    <td className="cursor-pointer px-6 py-4" onClick={() => navigate(`/customers/${req.id}`)}>
+                      <Badge className={`uppercase tracking-wide ${CUSTOMER_STATUS_BADGE[status]}`}>
+                        {status}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="cursor-pointer px-6 py-4" onClick={() => navigate(`/customers/${req.id}`)}>
                       {req.claimed_by_agent_id
                         ? <Badge className="bg-emerald-500/10 text-emerald-500">Claimed</Badge>
                         : <Badge className="bg-destructive/10 text-destructive">Open</Badge>}
                     </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2">
-                        {!req.claimed_by_agent_id && req.status === 'pending' && (
-                          <>
-                            <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
-                            <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
-                              <WhatsAppIcon className="size-3.5 text-[#25D366]" />
-                              Dispatch
-                            </Button>
-                          </>
-                        )}
-                        <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
-                          <a href={`https://wa.me/${phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
-                            <WhatsAppIcon className="size-3.5" />
-                            WhatsApp
-                          </a>
-                        </Button>
-                      </div>
+                    <td className="px-6 py-4">
+                      {reservingId === req.id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input type="number" min="0" step="0.01" placeholder="Price" value={resPrice}
+                            onChange={(e) => setResPrice(e.target.value)} className="h-8 w-24" />
+                          <Input type="date" value={resDeparture}
+                            onChange={(e) => setResDeparture(e.target.value)} className="h-8 w-32" />
+                          <Input type="datetime-local" value={resExpiry}
+                            onChange={(e) => setResExpiry(e.target.value)} className="h-8 w-40"
+                            aria-label="Reservation expiry" />
+                          <Button size="sm" onClick={() => confirmReservation(req)}>Confirm</Button>
+                          <Button size="sm" variant="outline" onClick={() => setReservingId(null)}>Cancel</Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          {!req.claimed_by_agent_id && req.status === 'pending' && (
+                            <>
+                              <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
+                              <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
+                                <WhatsAppIcon className="size-3.5 text-[#25D366]" />
+                                Dispatch
+                              </Button>
+                            </>
+                          )}
+                          {req.claimed_by_agent_id && !booking && (
+                            <Button size="sm" onClick={() => openReserveForm(req)}>Make reservation</Button>
+                          )}
+                          {booking && booking.payment_status !== 'paid' && (
+                            <Button size="sm" onClick={() => markPaid(booking.id)}>Mark paid</Button>
+                          )}
+                          {booking && booking.payment_status === 'paid' && !booking.ticket_sent && (
+                            <Button size="sm" onClick={() => markTicketSent(booking.id)}>Mark ticket sent</Button>
+                          )}
+                          {booking?.ticket_sent && !booking.card_made && (
+                            <Button size="sm" onClick={() => markCardMade(booking.id)}>Mark TAAMS card</Button>
+                          )}
+                          <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
+                            <a href={`https://wa.me/${phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
+                              <WhatsAppIcon className="size-3.5" />
+                              WhatsApp
+                            </a>
+                          </Button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
