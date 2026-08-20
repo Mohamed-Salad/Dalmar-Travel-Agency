@@ -125,7 +125,7 @@ export default function InquiryPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           {/* Ticket: stub (language + how it works) + coupon (the fields), split by a perforation */}
           <Card className="pt-0 overflow-hidden">
-            <FlightDivider animated />
+            <FlightDivider animated delay={0} />
             <div className="grid grid-cols-1 md:grid-cols-[240px_12px_1fr]">
               {/* Stub */}
               <div className="flex flex-col gap-6 px-6 py-8">
@@ -140,7 +140,7 @@ export default function InquiryPage() {
                     ))}
                   </div>
                 </div>
-                <FlightDivider />
+                <FlightDivider animated delay={-1} />
                 <div className="flex flex-col gap-3">
                   <p className="font-display text-sm font-semibold text-foreground">
                     {lang === 'en' ? 'How it works' : 'Sida Loo Shaqeeyo'}
@@ -158,8 +158,8 @@ export default function InquiryPage() {
                 </div>
               </div>
 
-              <FlightDivider orientation="vertical" animated className="hidden md:block justify-self-center" />
-              <FlightDivider animated className="md:hidden" />
+              <FlightDivider orientation="vertical" animated delay={-2} className="hidden md:block justify-self-center" />
+              <FlightDivider animated delay={-2} className="md:hidden" />
 
               {/* Coupon */}
               <div className="flex flex-col gap-6 px-6 py-8 md:px-8 md:py-10">
@@ -183,7 +183,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <FlightDivider />
+                <FlightDivider animated delay={-3} />
 
                 {/* Route */}
                 <div className={SECTION_CLS}>
@@ -203,7 +203,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <FlightDivider />
+                <FlightDivider animated delay={-4} />
 
                 {/* Passengers */}
                 <div className={SECTION_CLS}>
@@ -222,7 +222,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <FlightDivider />
+                <FlightDivider animated delay={-5} />
 
                 {/* Dates */}
                 <div className={SECTION_CLS}>
@@ -263,7 +263,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <FlightDivider />
+                <FlightDivider animated delay={-6} />
 
                 {/* Notes */}
                 <div className={cn(SECTION_CLS, 'gap-1.5')}>
