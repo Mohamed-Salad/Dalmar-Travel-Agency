@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
 import type { BookingRequest, Customer, Agent } from '../types';
+import { STATUS_BADGE, initials } from './DashboardPage';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { RefreshCw, Users, CheckCircle2, Circle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type RequestWithCustomer = BookingRequest & { customers: Customer };
 
@@ -38,19 +46,14 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(m / 60)}h ago`;
 }
 
-const AVATAR_PALETTE = [
-  { bg: 'var(--primary)',           color: 'var(--on-primary)' },
-  { bg: 'var(--secondary)',         color: 'var(--on-secondary)' },
-  { bg: 'var(--primary-container)', color: 'var(--on-primary-container)' },
-  { bg: 'var(--secondary-container)', color: 'var(--on-secondary-container)' },
-];
+const SELECT_CLS = 'rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground outline-none';
 
 export default function CoordinationPage() {
   const [agentName, setAgentName] = useState('');
+  const [agentId, setAgentId] = useState<string | null>(null);
   const [requests, setRequests] = useState<RequestWithCustomer[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selected, setSelected] = useState<RequestWithCustomer | null>(null);
-  const [claimed, setClaimed] = useState<Set<string>>(new Set());
   const [template, setTemplate] = useState(TEMPLATES[0]);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,7 @@ export default function CoordinationPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setAgentId(user.id);
         const { data: agent } = await supabase.from('agents').select('name').eq('id', user.id).single();
         if (agent) setAgentName(agent.name);
       }
@@ -81,14 +85,12 @@ export default function CoordinationPage() {
     setMessage(buildMessage(selected, template));
   }, [selected, template]);
 
-  function toggleClaim(agentId: string) {
-    const key = `${agentId}-${selected?.id ?? ''}`;
-    setClaimed(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  async function claimSelected() {
+    if (!selected || !agentId) return;
+    await supabase.from('booking_requests').update({ claimed_by_agent_id: agentId }).eq('id', selected.id);
+    const updated = { ...selected, claimed_by_agent_id: agentId };
+    setSelected(updated);
+    setRequests((rs) => rs.map((r) => (r.id === selected.id ? updated : r)));
   }
 
   const waLink = selected ? `https://wa.me/?text=${encodeURIComponent(message)}` : '#';
@@ -96,223 +98,187 @@ export default function CoordinationPage() {
   return (
     <AppShell agentName={agentName}>
       {/* Header */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="mb-6 flex items-end justify-between">
         <div>
-          <h2 className="text-[32px] font-bold" style={{ color: 'var(--primary)' }}>WhatsApp Coordination Queue</h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--on-surface-variant)' }}>
-            Manage incoming customer quotes and team assignments in real-time.
+          <h1 className="font-display text-3xl font-bold text-foreground">WhatsApp Coordination Queue</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage incoming customer quotes and team assignments in real time.
           </p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
-            {agents.slice(0, 4).map((a, i) => {
-              const c = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
-              return (
-                <div key={a.id} className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
-                  style={{ background: c.bg, color: c.color, borderColor: 'var(--surface)' }}>
-                  {a.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
-                </div>
-              );
-            })}
+            {agents.slice(0, 4).map((a) => (
+              <div key={a.id} className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-primary/10 text-[10px] font-bold text-primary">
+                {initials(a.name)}
+              </div>
+            ))}
             {agents.length > 4 && (
-              <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold"
-                style={{ background: 'var(--surface-container-highest)', color: 'var(--primary)', borderColor: 'var(--surface)' }}>
+              <div className="flex size-8 items-center justify-center rounded-full border-2 border-background bg-secondary text-[10px] font-bold text-muted-foreground">
                 +{agents.length - 4}
               </div>
             )}
           </div>
-          <button onClick={() => window.location.reload()}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold"
-            style={{ background: 'var(--secondary-container)', color: 'var(--on-secondary-container)' }}>
-            <span className="material-symbols-outlined text-[18px]">sync</span>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw className="size-4" />
             Refresh Queue
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-12 gap-6" style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }}>
-        {/* Left: Request Queue */}
-        <div className="col-span-4 flex flex-col rounded-xl overflow-hidden"
-          style={{ background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
-          <div className="px-4 py-3 flex justify-between items-center"
-            style={{ borderBottom: '1px solid var(--outline-variant)' }}>
-            <h3 className="text-[20px] font-semibold" style={{ color: 'var(--primary)' }}>Live Requests</h3>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-              style={{ background: 'var(--error)', color: 'var(--on-error)' }}>
-              {requests.filter(r => r.status === 'pending').length} NEW
-            </span>
+      {/* Main grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12" style={{ minHeight: '560px' }}>
+        {/* Left: request queue */}
+        <Card className="overflow-hidden py-0 lg:col-span-4">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <h2 className="font-display text-base font-bold text-foreground">Live Requests</h2>
+            <Badge className="bg-destructive/10 text-destructive">
+              {requests.filter((r) => r.status === 'pending').length} new
+            </Badge>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+          <div className="custom-scrollbar flex-1 space-y-2 overflow-y-auto p-3" style={{ maxHeight: '520px' }}>
             {loading ? (
-              <p className="text-sm text-center py-8" style={{ color: 'var(--on-surface-variant)' }}>Loading...</p>
-            ) : requests.map(req => {
+              <p className="py-8 text-center text-sm text-muted-foreground">Loading...</p>
+            ) : requests.map((req) => {
               const isSelected = selected?.id === req.id;
               return (
-                <div key={req.id} onClick={() => setSelected(req)}
-                  className="p-3 rounded-lg cursor-pointer transition-all"
-                  style={{
-                    background: isSelected ? 'var(--surface-container)' : 'var(--surface-container-lowest)',
-                    border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--outline-variant)'}`,
-                  }}>
-                  <div className="flex justify-between items-start mb-1.5">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold"
-                      style={{ background: isSelected ? 'var(--primary-container)' : 'var(--surface-container-high)', color: 'var(--primary)' }}>
-                      #{req.id.slice(0, 6).toUpperCase()}
-                    </span>
-                    <span className="text-[11px]" style={{ color: 'var(--outline)' }}>{timeAgo(req.created_at)}</span>
+                <button key={req.id} type="button" onClick={() => setSelected(req)}
+                  className={cn(
+                    'w-full rounded-lg border p-3 text-left transition-colors',
+                    isSelected ? 'border-primary bg-secondary' : 'border-border hover:bg-secondary/50'
+                  )}>
+                  <div className="mb-1.5 flex items-start justify-between">
+                    <span className="font-mono text-[11px] font-semibold text-primary">#{req.id.slice(0, 6).toUpperCase()}</span>
+                    <span className="text-[11px] text-muted-foreground">{timeAgo(req.created_at)}</span>
                   </div>
-                  <p className="text-[13px] font-semibold mb-1" style={{ color: isSelected ? 'var(--secondary)' : 'var(--primary)' }}>
+                  <p className="mb-1 text-[13px] font-semibold text-foreground">
                     {req.customers?.name ?? '—'} — {req.departure_city} → {req.destination_city}
                   </p>
-                  <p className="text-[12px] line-clamp-1 mb-2" style={{ color: 'var(--on-surface-variant)' }}>
+                  <p className="mb-2 line-clamp-1 text-xs text-muted-foreground">
                     {req.earliest_departure} – {req.latest_departure} · {req.adults + req.youth + req.children + req.infants} pax
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px]" style={{ color: req.claimed_by_agent_id ? 'var(--secondary)' : 'var(--on-surface-variant)' }}>
+                    <span className="text-[11px] text-muted-foreground">
                       {req.claimed_by_agent_id ? '✓ Assigned' : '○ Unassigned'}
                     </span>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded"
-                      style={{
-                        background: req.status === 'pending' ? '#fef3c7' : req.status === 'booked' ? '#dcfce7' : 'var(--surface-container)',
-                        color: req.status === 'pending' ? '#92400e' : req.status === 'booked' ? '#166534' : 'var(--on-surface-variant)',
-                      }}>
+                    <Badge className={`text-[11px] uppercase ${STATUS_BADGE[req.status] ?? STATUS_BADGE.pending}`}>
                       {req.status}
-                    </span>
+                    </Badge>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
-        </div>
+        </Card>
 
-        {/* Right: Composer + Roster */}
-        <div className="col-span-8 flex flex-col gap-6 overflow-hidden">
-          {/* Selected Summary */}
+        {/* Right: composer + roster */}
+        <div className="flex flex-col gap-6 lg:col-span-8">
           {selected && (
-            <div className="flex justify-between items-center p-4 rounded-xl shadow-sm"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
-              <div className="flex gap-4 items-center">
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'var(--surface-container)' }}>
-                  <span className="material-symbols-outlined text-[28px]" style={{ color: 'var(--primary)' }}>travel_explore</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h4 className="text-[18px] font-semibold" style={{ color: 'var(--primary)' }}>
-                      {selected.customers?.name} — {selected.departure_city} → {selected.destination_city}
-                    </h4>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
-                      style={{ background: 'var(--secondary-container)', color: 'var(--on-secondary-container)' }}>
-                      {selected.status}
-                    </span>
+            <Card>
+              <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Users className="size-6" />
                   </div>
-                  <p className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>
-                    Ref: #{selected.id.slice(0, 8).toUpperCase()} · {selected.earliest_departure} – {selected.latest_departure}
-                  </p>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-display text-base font-bold text-foreground">
+                        {selected.customers?.name} — {selected.departure_city} → {selected.destination_city}
+                      </h3>
+                      <Badge className={`text-[11px] uppercase ${STATUS_BADGE[selected.status] ?? STATUS_BADGE.pending}`}>
+                        {selected.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Ref: #{selected.id.slice(0, 8).toUpperCase()} · {selected.earliest_departure} – {selected.latest_departure}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <a href={waLink} target="_blank" rel="noreferrer"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold shadow-md shrink-0"
-                style={{ background: '#25D366', color: '#fff' }}>
-                <span className="material-symbols-outlined text-[18px]">send</span>
-                Post to Group
-              </a>
-            </div>
+                <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
+                  <a href={waLink} target="_blank" rel="noreferrer">
+                    <WhatsAppIcon className="size-4" />
+                    Post to Group
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Composer + Roster */}
-          <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden">
-            {/* Message Composer */}
-            <div className="rounded-xl flex flex-col overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
-              <div className="p-3 flex items-center gap-2"
-                style={{ borderBottom: '1px solid var(--outline-variant)', background: 'var(--surface-container-low)' }}>
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="#25D366">
-                  <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.246 2.248 3.484 5.232 3.484 8.412-.003 6.557-5.338 11.892-11.893 11.892-1.997-.001-3.951-.5-5.688-1.448l-6.309 1.656zm6.29-4.143c1.589.943 3.13 1.411 4.715 1.412 5.223 0 9.474-4.251 9.477-9.477.001-2.533-.985-4.913-2.777-6.706-1.791-1.793-4.17-2.779-6.704-2.779-5.225 0-9.476 4.252-9.479 9.478-.002 1.734.475 3.426 1.382 4.903l-1.033 3.774 3.86-1.011z"/>
-                </svg>
-                <h5 className="text-[13px] font-semibold" style={{ color: 'var(--primary)' }}>Message Composer</h5>
+          <div className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Message composer */}
+            <Card className="overflow-hidden py-0">
+              <div className="flex items-center gap-2 border-b border-border bg-secondary px-4 py-3">
+                <WhatsAppIcon className="size-4 text-[#25D366]" />
+                <h3 className="text-[13px] font-semibold text-foreground">Message Composer</h3>
               </div>
-              <div className="p-4 flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar">
+              <CardContent className="flex flex-col gap-3 py-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--on-surface-variant)' }}>Template</label>
-                  <select value={template} onChange={e => setTemplate(e.target.value)}
-                    className="w-full px-3 py-2 rounded text-sm outline-none"
-                    style={{ background: 'var(--surface-container)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface)' }}>
-                    {TEMPLATES.map(t => <option key={t}>{t}</option>)}
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Template</label>
+                  <select value={template} onChange={(e) => setTemplate(e.target.value)} className={cn(SELECT_CLS, 'w-full')}>
+                    {TEMPLATES.map((t) => <option key={t} className="bg-card">{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider mb-1 block" style={{ color: 'var(--on-surface-variant)' }}>Preview</label>
-                  <div className="p-3 rounded-xl text-[12px] leading-relaxed"
-                    style={{ background: '#DCF8C6', color: '#075E54', border: '1px solid #d1e7bc', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Preview</label>
+                  <div className="whitespace-pre-wrap rounded-lg border border-border bg-secondary/50 p-3 font-mono text-[12px] leading-relaxed text-foreground">
                     {message}
                   </div>
                 </div>
-                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
-                  className="w-full px-3 py-2 rounded text-sm outline-none resize-none"
-                  placeholder="Edit message..."
-                  style={{ background: 'var(--surface)', border: '1px solid var(--outline-variant)', color: 'var(--on-surface)' }} />
-                <a href={waLink} target="_blank" rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-bold text-sm"
-                  style={{ background: '#25D366', color: '#fff' }}>
-                  <span className="material-symbols-outlined text-[18px]">send</span>
-                  Send to All Agents
-                </a>
-              </div>
-            </div>
+                <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} placeholder="Edit message..." />
+                <Button asChild className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
+                  <a href={waLink} target="_blank" rel="noreferrer">
+                    <WhatsAppIcon className="size-4" />
+                    Send to All Agents
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
 
-            {/* Agent Roster */}
-            <div className="rounded-xl flex flex-col overflow-hidden"
-              style={{ background: 'var(--surface-container-lowest)', border: '1px solid var(--outline-variant)' }}>
-              <div className="p-3 flex items-center gap-2"
-                style={{ borderBottom: '1px solid var(--outline-variant)', background: 'var(--surface-container-low)' }}>
-                <span className="material-symbols-outlined text-[18px]" style={{ color: 'var(--primary)' }}>group</span>
-                <h5 className="text-[13px] font-semibold" style={{ color: 'var(--primary)' }}>Who Took This Task?</h5>
+            {/* Agent roster — claiming is the real claimed_by_agent_id column, same as Dashboard */}
+            <Card className="overflow-hidden py-0">
+              <div className="flex items-center gap-2 border-b border-border bg-secondary px-4 py-3">
+                <Users className="size-4 text-primary" />
+                <h3 className="text-[13px] font-semibold text-foreground">Who's On This Request?</h3>
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+              <div className="custom-scrollbar space-y-2 overflow-y-auto p-3" style={{ maxHeight: '400px' }}>
                 {agents.length === 0 ? (
-                  <p className="text-sm text-center py-8" style={{ color: 'var(--on-surface-variant)' }}>No agents found.</p>
-                ) : agents.map((agent, i) => {
-                  const key = `${agent.id}-${selected?.id ?? ''}`;
-                  const hasClaimed = claimed.has(key);
-                  const c = AVATAR_PALETTE[i % AVATAR_PALETTE.length];
+                  <p className="py-8 text-center text-sm text-muted-foreground">No agents found.</p>
+                ) : agents.map((agent) => {
+                  const isClaimer = selected?.claimed_by_agent_id === agent.id;
+                  const isMe = agent.id === agentId;
+                  const canClaim = isMe && selected && !selected.claimed_by_agent_id;
                   return (
                     <div key={agent.id}
-                      className="flex items-center justify-between p-3 rounded-xl transition-all"
-                      style={{
-                        background: hasClaimed ? 'rgba(0,106,106,0.08)' : 'var(--surface-container-low)',
-                        border: `1px solid ${hasClaimed ? 'var(--secondary)' : 'var(--outline-variant)'}`,
-                      }}>
+                      className={cn(
+                        'flex items-center justify-between rounded-lg border p-3',
+                        isClaimer ? 'border-primary bg-primary/5' : 'border-border'
+                      )}>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-[12px] shrink-0"
-                          style={{ background: c.bg, color: c.color }}>
-                          {agent.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[12px] font-bold text-primary">
+                          {initials(agent.name)}
                         </div>
                         <div>
-                          <p className="text-[13px] font-semibold" style={{ color: 'var(--on-surface)' }}>{agent.name}</p>
-                          <p className="text-[11px]" style={{ color: 'var(--on-surface-variant)' }}>{agent.email}</p>
+                          <p className="text-[13px] font-semibold text-foreground">{agent.name}{isMe && ' (you)'}</p>
+                          <p className="text-[11px] text-muted-foreground">{agent.email}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => selected && toggleClaim(agent.id)}
-                        disabled={!selected}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded text-[11px] font-bold transition-all disabled:opacity-40"
-                        style={{
-                          background: hasClaimed ? 'var(--secondary)' : 'var(--surface-container)',
-                          color: hasClaimed ? 'var(--on-secondary)' : 'var(--on-surface-variant)',
-                          border: '1px solid var(--outline-variant)',
-                        }}>
-                        <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: hasClaimed ? "'FILL' 1" : "'FILL' 0" }}>
-                          {hasClaimed ? 'check_circle' : 'radio_button_unchecked'}
-                        </span>
-                        {hasClaimed ? 'Took Task' : 'Mark Taken'}
-                      </button>
+                      {isClaimer ? (
+                        <Badge className="gap-1 bg-primary/10 text-primary">
+                          <CheckCircle2 className="size-3.5" />
+                          Claimed
+                        </Badge>
+                      ) : canClaim ? (
+                        <Button size="sm" variant="outline" onClick={claimSelected}>
+                          <Circle className="size-3.5" />
+                          Claim
+                        </Button>
+                      ) : (
+                        <span className="text-[11px] text-muted-foreground">—</span>
+                      )}
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
