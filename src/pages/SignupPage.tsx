@@ -37,13 +37,19 @@ export default function SignupPage() {
       return
     }
 
-    // status is not sent here -- it defaults to 'pending' in the database.
-    // Signing up does NOT grant portal access; an admin must approve first.
+    // status is not sent here -- it defaults to 'pending' and is enforced
+    // server-side (supabase/migrations/20260821000000_agent_signup_approval_gate.sql):
+    // an INSERT that tries to set status = 'approved' is rejected by RLS,
+    // not just omitted by this form. Signing up does NOT grant portal
+    // access; an admin must approve first.
     const { error: agentError } = await supabase
       .from('agents')
       .insert({ id: data.user.id, name, email, phone: phone || null })
     if (agentError) {
-      setError(agentError.message)
+      // The auth account now exists even though this failed -- retrying
+      // signUp() with the same email will fail ("already registered"), so
+      // say so explicitly rather than just showing the raw insert error.
+      setError(`Your login was created, but saving your agent details failed: ${agentError.message}. Contact an admin instead of trying to sign up again with this email.`)
       setLoading(false)
       return
     }
@@ -106,7 +112,7 @@ export default function SignupPage() {
                     <div className="flex flex-col gap-1.5">
                       <Label htmlFor="password" className={LABEL_CLS}>Password</Label>
                       <Input id="password" required type="password" autoComplete="new-password" variant="underline" value={password}
-                        onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={6} />
+                        onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" minLength={8} />
                     </div>
                     {error && (
                       <p className="text-sm text-destructive">{error}</p>

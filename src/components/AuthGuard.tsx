@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+// This component is a UI convenience, not the security boundary -- it only
+// decides what this browser tab renders. The real boundary is Postgres RLS
+// (public.is_approved_agent(), see supabase/migrations/
+// 20260821000000_agent_signup_approval_gate.sql). That function is not yet
+// referenced by the authenticated-role policies on customers/booking_requests/
+// bookings, so a pending agent's *browser* is blocked here, but their
+// credentials can still read/write those tables via a direct API call until
+// those policies are updated. Don't treat this file as sufficient on its own.
 type Status = 'checking' | 'signed-out' | 'pending' | 'approved';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
