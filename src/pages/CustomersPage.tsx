@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
@@ -7,8 +7,9 @@ import { customerStatus, CUSTOMER_STATUS_BADGE } from './DashboardPage';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
-import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange } from 'lucide-react';
+import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange, Pencil } from 'lucide-react';
 
 type FullBooking = Booking & { fare_options: FareOption };
 type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[] };
@@ -32,6 +33,21 @@ export default function CustomersPage() {
   const [ticketSent, setTicketSent] = useState(false);
   const [ticketPrinted, setTicketPrinted] = useState(false);
   const [countdown, setCountdown] = useState('');
+  const [editingExpiry, setEditingExpiry] = useState(false);
+  const [expiryInput, setExpiryInput] = useState('');
+  const intervalRef = useRef<number | null>(null);
+
+  function startCountdown(expiry: string) {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = window.setInterval(() => {
+      const diff = new Date(expiry).getTime() - Date.now();
+      if (diff <= 0) { setCountdown('Expired'); if (intervalRef.current) clearInterval(intervalRef.current); return; }
+      const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+      const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+      const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+      setCountdown(`${h}:${m}:${s}`);
+    }, 1000);
+  }
 
   useEffect(() => {
     async function load() {
@@ -53,21 +69,13 @@ export default function CustomersPage() {
         if (b) {
           setCardMade(b.card_made);
           setTicketSent(b.ticket_sent);
-          if (b.reservation_expiry) {
-            const interval = setInterval(() => {
-              const diff = new Date(b.reservation_expiry!).getTime() - Date.now();
-              if (diff <= 0) { setCountdown('Expired'); clearInterval(interval); return; }
-              const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
-              const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-              const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-              setCountdown(`${h}:${m}:${s}`);
-            }, 1000);
-          }
+          if (b.reservation_expiry) startCountdown(b.reservation_expiry);
         }
       }
       setLoading(false);
     }
     load();
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [id]);
 
   async function toggleField(field: 'card_made' | 'ticket_sent', value: boolean) {
@@ -76,6 +84,22 @@ export default function CustomersPage() {
     await supabase.from('bookings').update({ [field]: value }).eq('id', bookingId);
     if (field === 'card_made') setCardMade(value);
     if (field === 'ticket_sent') setTicketSent(value);
+  }
+
+  function openExpiryEdit() {
+    const current = req?.bookings?.[0]?.reservation_expiry;
+    setExpiryInput(current ? current.slice(0, 16) : '');
+    setEditingExpiry(true);
+  }
+
+  async function saveExpiry() {
+    const bookingId = req?.bookings?.[0]?.id;
+    if (!bookingId || !expiryInput) return;
+    const iso = new Date(expiryInput).toISOString();
+    await supabase.from('bookings').update({ reservation_expiry: iso }).eq('id', bookingId);
+    setReq((r) => r && { ...r, bookings: r.bookings.map((b, i) => (i === 0 ? { ...b, reservation_expiry: iso } : b)) });
+    startCountdown(iso);
+    setEditingExpiry(false);
   }
 
   if (loading) {
@@ -267,20 +291,39 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          {booking?.reservation_expiry && (
+          {booking && (
             <Card>
-              <CardHeader>
+              <CardHeader className="flex items-center justify-between">
                 <CardTitle className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
                   Reservation Expiry
                 </CardTitle>
+                {!editingExpiry && (
+                  <button onClick={openExpiryEdit} className="text-muted-foreground hover:text-foreground" aria-label="Edit reservation expiry">
+                    <Pencil className="size-3.5" />
+                  </button>
+                )}
               </CardHeader>
               <CardContent>
-                <p className={`font-mono text-xl font-bold ${countdown === 'Expired' ? 'text-destructive' : 'text-foreground'}`}>
-                  {countdown || '—'}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {new Date(booking.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+                {editingExpiry ? (
+                  <div className="flex flex-col gap-2">
+                    <Input type="datetime-local" value={expiryInput} onChange={(e) => setExpiryInput(e.target.value)} className="font-mono" />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={saveExpiry}>Save</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingExpiry(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : booking.reservation_expiry ? (
+                  <>
+                    <p className={`font-mono text-xl font-bold ${countdown === 'Expired' ? 'text-destructive' : 'text-foreground'}`}>
+                      {countdown || '—'}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(booking.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not set — the reservation system deletes unconfirmed holds after a deadline; set this once you know it.</p>
+                )}
               </CardContent>
             </Card>
           )}
