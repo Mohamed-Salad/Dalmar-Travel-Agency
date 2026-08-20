@@ -11,7 +11,7 @@ const inputVariants = cva(
         default:
           "h-9 rounded-md border border-input bg-transparent px-2.5 py-1 shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30",
         underline:
-          "h-9 rounded-none border-0 border-b-2 border-input bg-transparent px-0 py-1 focus-visible:border-primary",
+          "h-9 rounded-none border-0 border-b-2 border-foreground/25 bg-transparent px-0 py-1 focus-visible:border-primary",
       },
     },
     defaultVariants: {

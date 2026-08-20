@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,8 +13,8 @@ import { cn } from '@/lib/utils'
 import { CITIES } from '@/lib/cities'
 
 const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
-const EYEBROW_CLS = 'font-mono text-xs font-bold uppercase tracking-widest text-primary'
-const SECTION_CLS = 'flex flex-col gap-4 pt-8 mt-8 border-t border-dashed border-border first:pt-0 first:mt-0 first:border-t-0'
+const EYEBROW_CLS = 'font-mono text-sm md:text-base font-bold uppercase tracking-widest text-primary'
+const SECTION_CLS = 'flex flex-col gap-4'
 
 type Step = 'form' | 'success'
 type Lang = 'en' | 'so'
@@ -122,48 +122,47 @@ export default function InquiryPage() {
             : 'Buuxi foomka hoose, wakiiladeenuna waxay helayaan qiimaha ugu fiican safarkaaga.'}
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-10 items-start">
-          {/* Sidebar */}
-          <div className="flex flex-col gap-4 md:sticky md:top-24">
-            <Card>
-              <CardContent className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Language</span>
-                <div className="flex rounded-md border border-border overflow-hidden">
-                  {(['en', 'so'] as Lang[]).map((l) => (
-                    <button key={l} type="button" onClick={() => setLang(l)}
-                      className={`px-2.5 py-1 text-xs font-semibold uppercase transition-colors ${lang === l ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
-                      {l === 'en' ? 'EN' : 'SO'}
-                    </button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+          {/* Ticket: stub (language + how it works) + coupon (the fields), split by a perforation */}
+          <Card className="pt-0 overflow-hidden">
+            <Stripe variant="card-top" />
+            <div className="grid grid-cols-1 md:grid-cols-[240px_12px_1fr]">
+              {/* Stub */}
+              <div className="flex flex-col gap-6 px-6 py-8">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">Language</span>
+                  <div className="flex rounded-md border border-border overflow-hidden">
+                    {(['en', 'so'] as Lang[]).map((l) => (
+                      <button key={l} type="button" onClick={() => setLang(l)}
+                        className={`px-2.5 py-1 text-xs font-semibold uppercase transition-colors ${lang === l ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                        {l === 'en' ? 'EN' : 'SO'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Stripe variant="section" />
+                <div className="flex flex-col gap-3">
+                  <p className="font-display text-sm font-semibold text-foreground">
+                    {lang === 'en' ? 'How it works' : 'Sida Loo Shaqeeyo'}
+                  </p>
+                  {[
+                    lang === 'en' ? 'Submit your request' : 'Dir codsigaaga',
+                    lang === 'en' ? 'We find best fares' : 'Waxaan helaa qiimo fiican',
+                    lang === 'en' ? 'Agent calls you back' : 'Wakiil ku soo wacaa',
+                  ].map((text, i) => (
+                    <div key={text} className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-primary">0{i + 1}</span>
+                      <span className="text-sm text-muted-foreground">{text}</span>
+                    </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display text-base">
-                  {lang === 'en' ? 'How it works' : 'Sida Loo Shaqeeyo'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                {[
-                  lang === 'en' ? 'Submit your request' : 'Dir codsigaaga',
-                  lang === 'en' ? 'We find best fares' : 'Waxaan helaa qiimo fiican',
-                  lang === 'en' ? 'Agent calls you back' : 'Wakiil ku soo wacaa',
-                ].map((text, i) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <span className="font-mono text-xs text-primary">0{i + 1}</span>
-                    <span className="text-sm text-muted-foreground">{text}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
 
-          {/* Main form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-            <Card className="pt-0">
-              <Stripe variant="card-top" />
-              <CardContent className="pt-10 pb-2">
+              <Stripe variant="divider" orientation="vertical" className="hidden md:block justify-self-center" />
+              <Stripe variant="divider" className="md:hidden" />
+
+              {/* Coupon */}
+              <div className="flex flex-col gap-6 px-6 py-8 md:px-8 md:py-10">
                 {/* Contact */}
                 <div className={SECTION_CLS}>
                   <p className={EYEBROW_CLS}>{lang === 'en' ? 'Contact' : 'Xiriirka'}</p>
@@ -184,6 +183,8 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
+                <Stripe variant="section" />
+
                 {/* Route */}
                 <div className={SECTION_CLS}>
                   <p className={EYEBROW_CLS}>{lang === 'en' ? 'Route' : 'Waddada'}</p>
@@ -202,6 +203,8 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
+                <Stripe variant="section" />
+
                 {/* Passengers */}
                 <div className={SECTION_CLS}>
                   <div className="flex items-center justify-between">
@@ -219,6 +222,8 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
+                <Stripe variant="section" />
+
                 {/* Dates */}
                 <div className={SECTION_CLS}>
                   <div className="flex items-center justify-between">
@@ -228,7 +233,7 @@ export default function InquiryPage() {
                       {lang === 'en' ? 'One-way trip' : 'Hal Taraf'}
                     </label>
                   </div>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-2">
                       <p className="text-xs font-medium text-muted-foreground">
                         {lang === 'en' ? 'Departure window' : 'Muddada Baxitaanka'}
@@ -258,6 +263,8 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
+                <Stripe variant="section" />
+
                 {/* Notes */}
                 <div className={cn(SECTION_CLS, 'gap-1.5')}>
                   <Label htmlFor="notes" className={LABEL_CLS}>{lang === 'en' ? 'Additional notes (optional)' : 'Faallo Dheeraad Ah'}</Label>
@@ -265,29 +272,29 @@ export default function InquiryPage() {
                     placeholder={lang === 'en' ? 'e.g. Prefer morning flights, specific airline...' : 'Tusaale: Dulimaadka subaxda...'} />
                 </div>
 
-                {error && <p className="text-sm text-destructive mt-6">{error}</p>}
-              </CardContent>
-            </Card>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+              </div>
+            </div>
+          </Card>
 
-            <Card className="text-center py-12">
-              <CardContent>
-                <h3 className="font-display text-2xl font-bold text-foreground mb-3">
-                  {lang === 'en' ? 'Ready to find your flight?' : 'Ma diyaar baad u tahay?'}
-                </h3>
-                <p className="text-base text-muted-foreground max-w-md mx-auto mb-8">
-                  {lang === 'en'
-                    ? 'Once you submit, our agents search all available airlines and contact you via WhatsApp within 2 hours.'
-                    : 'Markaad dirto, wakiiladeenna ayaa raadinaya dhamaan dulimaadyada oo kuugu soo wacaya 2 saac gudahood.'}
-                </p>
-                <Button type="submit" size="lg" disabled={loading}>
-                  {loading
-                    ? (lang === 'en' ? 'Submitting...' : 'La dirayo...')
-                    : (lang === 'en' ? 'Submit quote request' : 'Dir Codsiga Qiimaha')}
-                </Button>
-              </CardContent>
-            </Card>
-          </form>
-        </div>
+          <Card className="text-center py-12">
+            <CardContent>
+              <h3 className="font-display text-2xl font-bold text-foreground mb-3">
+                {lang === 'en' ? 'Ready to find your flight?' : 'Ma diyaar baad u tahay?'}
+              </h3>
+              <p className="text-base text-muted-foreground max-w-md mx-auto mb-8">
+                {lang === 'en'
+                  ? 'Once you submit, our agents search all available airlines and contact you via WhatsApp within 2 hours.'
+                  : 'Markaad dirto, wakiiladeenna ayaa raadinaya dhamaan dulimaadyada oo kuugu soo wacaya 2 saac gudahood.'}
+              </p>
+              <Button type="submit" size="lg" disabled={loading}>
+                {loading
+                  ? (lang === 'en' ? 'Submitting...' : 'La dirayo...')
+                  : (lang === 'en' ? 'Submit quote request' : 'Dir Codsiga Qiimaha')}
+              </Button>
+            </CardContent>
+          </Card>
+        </form>
       </main>
     </div>
   )

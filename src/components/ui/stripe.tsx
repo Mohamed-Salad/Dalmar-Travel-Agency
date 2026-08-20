@@ -1,42 +1,46 @@
 import { cn } from "@/lib/utils"
 
-const STRIPE_GRADIENT =
-  "repeating-linear-gradient(-45deg, var(--primary) 0 10px, var(--destructive) 10px 20px, var(--background) 20px 24px, var(--destructive) 24px 34px, var(--primary) 34px 44px, var(--background) 44px 48px)"
-
 const VARIANTS = {
-  "card-top": { height: "6px", tile: "14px", hole: "2.5px" },
-  divider: { height: "12px", tile: "20px", hole: "4px" },
+  "card-top": { size: "6px", tile: "14px", hole: "2.5px" },
+  divider: { size: "12px", tile: "20px", hole: "4px" },
+  section: { size: "3px", tile: "10px", hole: "1.5px" },
 } as const
 
 /**
- * The airmail-envelope stripe — the page's one signature motif, cut with a
- * row of perforation holes like a ticket stub. `card-top` sits atop a Card
- * (thin); `divider` marks a section boundary on the page (thicker).
+ * Single-color die-cut perforation — the page's one signature motif, a row
+ * of punched-out circular holes like a ticket stub tear line. `card-top`
+ * sits atop a Card; `divider` marks a boundary between major regions
+ * (works vertically too, for a stub/coupon split); `section` is a subtler
+ * version for dividing fields within a form.
  */
 function Stripe({
   variant = "card-top",
+  orientation = "horizontal",
   className,
 }: {
   variant?: keyof typeof VARIANTS
+  orientation?: "horizontal" | "vertical"
   className?: string
 }) {
-  const { height, tile, hole } = VARIANTS[variant]
+  const { size, tile, hole } = VARIANTS[variant]
+  const vertical = orientation === "vertical"
   const mask = `radial-gradient(circle at center, transparent 0 ${hole}, black calc(${hole} + 1px) 100%)`
   return (
     <div
       data-slot="stripe"
       data-variant={variant}
-      className={cn("w-full", className)}
+      data-orientation={orientation}
+      className={cn(vertical ? "h-full" : "w-full", className)}
       style={{
-        height,
-        background: STRIPE_GRADIENT,
+        [vertical ? "width" : "height"]: size,
+        background: "var(--primary)",
         maskImage: mask,
-        maskSize: `${tile} 100%`,
-        maskRepeat: "repeat-x",
+        maskSize: vertical ? `100% ${tile}` : `${tile} 100%`,
+        maskRepeat: vertical ? "repeat-y" : "repeat-x",
         maskPosition: "center",
         WebkitMaskImage: mask,
-        WebkitMaskSize: `${tile} 100%`,
-        WebkitMaskRepeat: "repeat-x",
+        WebkitMaskSize: vertical ? `100% ${tile}` : `${tile} 100%`,
+        WebkitMaskRepeat: vertical ? "repeat-y" : "repeat-x",
         WebkitMaskPosition: "center",
       }}
     />

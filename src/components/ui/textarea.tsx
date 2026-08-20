@@ -11,7 +11,7 @@ const textareaVariants = cva(
         default:
           "rounded-md border border-input bg-transparent px-2.5 py-2 shadow-xs focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30",
         underline:
-          "rounded-none border-0 border-b-2 border-input bg-transparent px-0 py-2 focus-visible:border-primary",
+          "rounded-none border-0 border-b-2 border-foreground/25 bg-transparent px-0 py-2 focus-visible:border-primary",
       },
     },
     defaultVariants: {
