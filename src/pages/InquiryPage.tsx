@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { PassengerCounter } from '@/components/inquiry/PassengerCounter'
-import { Stripe } from '@/components/ui/stripe'
+import { FlightDivider } from '@/components/ui/flight-divider'
 import { SiteHeader } from '@/components/ui/site-header'
 import { cn } from '@/lib/utils'
 import { CITIES } from '@/lib/cities'
@@ -125,7 +125,7 @@ export default function InquiryPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-8">
           {/* Ticket: stub (language + how it works) + coupon (the fields), split by a perforation */}
           <Card className="pt-0 overflow-hidden">
-            <Stripe variant="card-top" />
+            <FlightDivider animated />
             <div className="grid grid-cols-1 md:grid-cols-[240px_12px_1fr]">
               {/* Stub */}
               <div className="flex flex-col gap-6 px-6 py-8">
@@ -140,7 +140,7 @@ export default function InquiryPage() {
                     ))}
                   </div>
                 </div>
-                <Stripe variant="section" />
+                <FlightDivider />
                 <div className="flex flex-col gap-3">
                   <p className="font-display text-sm font-semibold text-foreground">
                     {lang === 'en' ? 'How it works' : 'Sida Loo Shaqeeyo'}
@@ -158,8 +158,8 @@ export default function InquiryPage() {
                 </div>
               </div>
 
-              <Stripe variant="divider" orientation="vertical" className="hidden md:block justify-self-center" />
-              <Stripe variant="divider" className="md:hidden" />
+              <FlightDivider orientation="vertical" animated className="hidden md:block justify-self-center" />
+              <FlightDivider animated className="md:hidden" />
 
               {/* Coupon */}
               <div className="flex flex-col gap-6 px-6 py-8 md:px-8 md:py-10">
@@ -183,7 +183,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <Stripe variant="section" />
+                <FlightDivider />
 
                 {/* Route */}
                 <div className={SECTION_CLS}>
@@ -203,7 +203,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <Stripe variant="section" />
+                <FlightDivider />
 
                 {/* Passengers */}
                 <div className={SECTION_CLS}>
@@ -222,7 +222,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <Stripe variant="section" />
+                <FlightDivider />
 
                 {/* Dates */}
                 <div className={SECTION_CLS}>
@@ -263,7 +263,7 @@ export default function InquiryPage() {
                   </div>
                 </div>
 
-                <Stripe variant="section" />
+                <FlightDivider />
 
                 {/* Notes */}
                 <div className={cn(SECTION_CLS, 'gap-1.5')}>

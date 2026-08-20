@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Stripe } from '@/components/ui/stripe'
+import { FlightDivider } from '@/components/ui/flight-divider'
 import { SiteHeader } from '@/components/ui/site-header'
 
 const LABEL_CLS = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
@@ -38,7 +38,7 @@ export default function LoginPage() {
           </div>
 
           <Card className="pt-0">
-            <Stripe variant="card-top" />
+            <FlightDivider animated />
             <CardHeader className="pt-6">
               <CardTitle className="sr-only">Sign in</CardTitle>
               <CardDescription className="sr-only">Enter your agent email and password</CardDescription>

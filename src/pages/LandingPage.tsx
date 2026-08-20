@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Stat } from "@/components/ui/stat"
+import { FlightDivider } from "@/components/ui/flight-divider"
 
 type Lang = "en" | "so"
 const L: Record<string, Record<Lang, string>> = {
@@ -67,16 +68,6 @@ function ServiceRow({ icon: Icon, title, desc }: { icon: LucideIcon; title: stri
 }
 
 /** Section boundary: a flight path, not an unexplained color band. */
-function FlightDivider() {
-  return (
-    <div className="mx-auto max-w-6xl px-6 flex items-center gap-4 py-2" aria-hidden="true">
-      <div className="flex-1 border-t border-dashed border-border" />
-      <Plane className="size-4 shrink-0 -rotate-45 text-primary" />
-      <div className="flex-1 border-t border-dashed border-border" />
-    </div>
-  )
-}
-
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>("en")
   const services = getServices(lang)
@@ -130,7 +121,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-      <FlightDivider />
+      <FlightDivider className="mx-auto max-w-6xl px-6" />
 
       {/* Trust — paper band, stat kept small/secondary, not the lead element */}
       <section id="trust" className="mx-auto max-w-6xl px-6 py-16">
@@ -144,7 +135,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
-      <FlightDivider />
+      <FlightDivider className="mx-auto max-w-6xl px-6" />
 
       {/* Services — a departure-board row list, not an icon-circle grid */}
       <section id="services" className="mx-auto max-w-6xl px-6 py-16">
@@ -172,7 +163,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-      <FlightDivider />
+      <FlightDivider className="mx-auto max-w-6xl px-6" />
 
       {/* WhatsApp CTA */}
       <section className="mx-auto max-w-6xl px-6 py-16">
