@@ -3,6 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
 import type { BookingRequest, Customer, Booking, FareOption } from '../types';
+import { customerStatus, CUSTOMER_STATUS_BADGE } from './DashboardPage';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange } from 'lucide-react';
 
 type FullBooking = Booking & { fare_options: FareOption };
 type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[] };
@@ -10,8 +16,8 @@ type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBook
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--on-surface-variant)' }}>{label}</p>
-      <p className="text-base font-semibold" style={{ color: 'var(--primary)' }}>{value || '—'}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{value || '—'}</p>
     </div>
   );
 }
@@ -75,7 +81,7 @@ export default function CustomersPage() {
   if (loading) {
     return (
       <AppShell agentName={agentName}>
-        <div className="flex items-center justify-center h-64 text-sm" style={{ color: 'var(--on-surface-variant)' }}>Loading...</div>
+        <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Loading...</div>
       </AppShell>
     );
   }
@@ -83,9 +89,12 @@ export default function CustomersPage() {
   if (!req) {
     return (
       <AppShell agentName={agentName}>
-        <div className="text-center py-20">
-          <p className="text-sm mb-4" style={{ color: 'var(--on-surface-variant)' }}>Booking not found.</p>
-          <button onClick={() => navigate('/dashboard')} className="text-sm font-semibold" style={{ color: 'var(--primary)' }}>← Back to Dashboard</button>
+        <div className="py-20 text-center">
+          <p className="mb-4 text-sm text-muted-foreground">Booking not found.</p>
+          <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="size-4" />
+            Back to Dashboard
+          </Button>
         </div>
       </AppShell>
     );
@@ -94,6 +103,7 @@ export default function CustomersPage() {
   const booking = req.bookings?.[0];
   const fare = booking?.fare_options;
   const customer = req.customers;
+  const status = customerStatus(req, booking);
   const pax = [
     req.adults > 0 && `${req.adults} Adult${req.adults > 1 ? 's' : ''}`,
     req.youth > 0 && `${req.youth} Youth`,
@@ -108,205 +118,187 @@ export default function CustomersPage() {
   return (
     <AppShell agentName={agentName}>
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="mb-6 flex items-start justify-between">
         <div>
           <button onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-1 text-sm mb-2 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--on-surface-variant)' }}>
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+            className="mb-2 flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <ArrowLeft className="size-4" />
             Back to Dashboard
           </button>
-          <h2 className="text-[32px] font-bold" style={{ color: 'var(--primary)' }}>
+          <h1 className="font-display text-3xl font-bold text-foreground">
             {customer?.name ?? 'Customer Detail'}
-          </h2>
-          <div className="flex gap-3 mt-2 flex-wrap">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-semibold"
-              style={{ background: 'var(--secondary-container)', color: 'var(--on-secondary-container)' }}>
-              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>confirmation_number</span>
-              {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
-            </span>
+          </h1>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Badge className={`uppercase tracking-wide ${CUSTOMER_STATUS_BADGE[status]}`}>{status}</Badge>
             {countdown && (
-              <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px]"
-                style={{ background: 'var(--surface-container-high)', color: 'var(--on-surface-variant)', border: '1px solid var(--outline-variant)' }}>
-                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                Expires: <span className="font-mono font-bold ml-1">{countdown}</span>
-              </span>
+              <Badge variant="outline" className="gap-1.5">
+                <Timer className="size-3.5" />
+                Expires: <span className="font-mono font-bold">{countdown}</span>
+              </Badge>
             )}
           </div>
         </div>
-        <div className="flex gap-3 shrink-0">
-          <button className="px-4 py-2 rounded text-sm font-semibold"
-            style={{ background: 'var(--surface)', border: '1px solid var(--outline)', color: 'var(--primary)' }}>
-            Edit Details
-          </button>
+        <div className="flex shrink-0 gap-3">
+          <Button variant="outline" size="sm">Edit Details</Button>
           {customer?.phone && (
-            <a href={`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${waMsg}`}
-              target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold shadow-md"
-              style={{ background: '#25D366', color: '#fff' }}>
-              <span className="material-symbols-outlined text-[18px]">send</span>
-              Send Ticket via WhatsApp
-            </a>
+            <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
+              <a href={`https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
+                <WhatsAppIcon className="size-4" />
+                Send Ticket via WhatsApp
+              </a>
+            </Button>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6 items-start">
-        {/* Left Column */}
-        <div className="col-span-8 space-y-6">
-          {/* Passenger Card */}
-          <div className="glass-card rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[20px] font-semibold flex items-center gap-2" style={{ color: 'var(--primary)' }}>
-                <span className="material-symbols-outlined" style={{ color: 'var(--secondary)' }}>person</span>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        {/* Left column */}
+        <div className="space-y-6 lg:col-span-8">
+          <Card>
+            <CardHeader className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <User className="size-5 text-primary" />
                 Passenger Details
-              </h3>
-              <span className="text-sm" style={{ color: 'var(--on-surface-variant)' }}>{pax || '1 Adult'}</span>
-            </div>
-            <div className="grid grid-cols-3 gap-6">
+              </CardTitle>
+              <span className="text-sm text-muted-foreground">{pax || '1 Adult'}</span>
+            </CardHeader>
+            <CardContent className="grid grid-cols-3 gap-6">
               <Field label="Full Name" value={customer?.name ?? ''} />
               <Field label="Phone Number" value={customer?.phone ?? ''} />
               <Field label="Email Address" value={customer?.email ?? ''} />
               <Field label="Departure City" value={req.departure_city} />
               <Field label="Destination City" value={req.destination_city} />
               <Field label="Notes" value={req.notes ?? ''} />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Flight Itinerary */}
-          <div className="glass-card rounded-xl overflow-hidden">
-            <div className="p-4 flex items-center gap-2"
-              style={{ borderBottom: '1px solid var(--outline-variant)', background: 'var(--surface-container-low)' }}>
-              <span className="material-symbols-outlined" style={{ color: 'var(--secondary)' }}>flight</span>
-              <h3 className="text-[20px] font-semibold" style={{ color: 'var(--primary)' }}>Flight Itinerary</h3>
+          <Card className="overflow-hidden py-0">
+            <div className="flex items-center gap-2 border-b border-border bg-secondary px-6 py-4">
+              <Plane className="size-5 text-primary" />
+              <h3 className="font-display text-lg font-bold text-foreground">Flight Itinerary</h3>
             </div>
-            <div className="p-6">
+            <CardContent className="py-6">
               <div className="flex items-center gap-8">
-                <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'var(--surface-container)' }}>
-                  <span className="material-symbols-outlined text-[32px]" style={{ color: 'var(--primary)' }}>flight_takeoff</span>
+                <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Plane className="size-8" />
                 </div>
-                <div className="flex-1 grid grid-cols-3 items-center gap-4">
+                <div className="grid flex-1 grid-cols-3 items-center gap-4">
                   <div className="text-center">
-                    <p className="text-[24px] font-bold" style={{ color: 'var(--primary)' }}>{req.departure_city}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--on-surface-variant)' }}>{req.earliest_departure}</p>
+                    <p className="font-mono text-xl font-bold text-foreground">{req.departure_city}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{req.earliest_departure}</p>
                   </div>
                   <div className="flex flex-col items-center">
-                    <p className="text-xs mb-1" style={{ color: 'var(--on-surface-variant)' }}>
-                      {req.earliest_return ? 'Return' : 'One Way'}
-                    </p>
-                    <div className="w-full h-px relative flex items-center justify-center"
-                      style={{ background: 'var(--outline-variant)' }}>
-                      <span className="material-symbols-outlined text-[20px]"
-                        style={{ color: 'var(--secondary)', background: 'var(--surface-container-lowest)' }}>
-                        flight_takeoff
-                      </span>
+                    <p className="mb-1 text-xs text-muted-foreground">{req.earliest_return ? 'Return' : 'One Way'}</p>
+                    <div className="relative flex w-full items-center justify-center border-t border-dashed border-border">
+                      <Plane className="size-4 -rotate-45 bg-card text-primary" />
                     </div>
-                    <p className="text-xs font-bold mt-1" style={{ color: 'var(--secondary)' }}>
-                      {fare?.airline ?? 'TBD'}
-                    </p>
+                    <p className="mt-1 text-xs font-bold text-primary">{fare?.airline ?? 'TBD'}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[24px] font-bold" style={{ color: 'var(--primary)' }}>{req.destination_city}</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--on-surface-variant)' }}>{req.latest_departure}</p>
+                    <p className="font-mono text-xl font-bold text-foreground">{req.destination_city}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{req.latest_departure}</p>
                   </div>
                 </div>
                 {fare?.price != null && (
-                  <div className="text-right shrink-0">
-                    <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--on-surface-variant)' }}>Fare</p>
-                    <p className="text-[20px] font-bold" style={{ color: 'var(--primary)' }}>${fare.price.toFixed(2)}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Fare</p>
+                    <p className="text-xl font-bold text-foreground">${fare.price.toFixed(2)}</p>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Status Toggles */}
+          {/* Status toggles */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'TAAMS Card Created', icon: 'credit_card', checked: cardMade,       onChange: (v: boolean) => toggleField('card_made', v) },
-              { label: 'Ticket Printed',     icon: 'print',       checked: ticketPrinted,   onChange: (v: boolean) => setTicketPrinted(v) },
-              { label: 'WhatsApp Sent',      icon: 'chat',        checked: ticketSent,       onChange: (v: boolean) => toggleField('ticket_sent', v) },
-            ].map(({ label, icon, checked, onChange }) => (
-              <label key={label} className="glass-card rounded-xl p-4 flex items-center justify-between cursor-pointer transition-colors"
-                style={{ border: checked ? '1px solid var(--secondary)' : undefined }}>
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined" style={{ color: checked ? 'var(--secondary)' : 'var(--on-surface-variant)' }}>{icon}</span>
-                  <span className="text-[13px] font-semibold" style={{ color: 'var(--on-surface)' }}>{label}</span>
-                </div>
-                <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-                  className="w-5 h-5 rounded cursor-pointer" style={{ accentColor: 'var(--secondary)' }} />
-              </label>
+              { label: 'TAAMS Card Created', icon: CreditCard, checked: cardMade, onChange: (v: boolean) => toggleField('card_made', v) },
+              { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: setTicketPrinted },
+              { label: 'WhatsApp Sent', icon: MessageCircle, checked: ticketSent, onChange: (v: boolean) => toggleField('ticket_sent', v) },
+            ].map(({ label, icon: Icon, checked, onChange }) => (
+              <Card key={label} size="sm" className={checked ? 'ring-1 ring-primary' : undefined}>
+                <label className="flex cursor-pointer items-center justify-between px-4 py-2">
+                  <div className="flex items-center gap-3">
+                    <Icon className={`size-5 ${checked ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <span className="text-[13px] font-semibold text-foreground">{label}</span>
+                  </div>
+                  <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
+                    className="size-4 cursor-pointer accent-primary" />
+                </label>
+              </Card>
             ))}
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="col-span-4 space-y-6 sticky top-24">
-          {/* Payment Tracker */}
-          <div className="rounded-xl p-6 shadow-xl" style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}>
-            <h3 className="text-[20px] font-semibold mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined">payments</span>
-              Payment Tracker
-            </h3>
-            {booking ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Total Fare</p>
-                    <p className="text-[32px] font-extrabold">{fare?.price != null ? `$${fare.price.toFixed(2)}` : '—'}</p>
+        {/* Right column */}
+        <div className="space-y-6 lg:sticky lg:top-24 lg:col-span-4">
+          <Card className="bg-primary text-primary-foreground">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-display text-lg">
+                <Wallet className="size-5" />
+                Payment Tracker
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {booking ? (
+                <div className="space-y-4">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Total Fare</p>
+                      <p className="text-3xl font-extrabold">{fare?.price != null ? `$${fare.price.toFixed(2)}` : '—'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Status</p>
+                      <p className="text-lg font-bold">{booking.payment_status === 'paid' ? 'Paid ✓' : 'Unpaid'}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[11px] uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.6)' }}>Status</p>
-                    <p className="text-[20px] font-bold" style={{ color: 'var(--secondary-fixed)' }}>
-                      {booking.payment_status === 'paid' ? 'Paid ✓' : 'Unpaid'}
-                    </p>
+                  <div className="h-2.5 w-full overflow-hidden rounded-full bg-primary-foreground/10">
+                    <div className="h-full rounded-full bg-primary-foreground/80 transition-all"
+                      style={{ width: booking.payment_status === 'paid' ? '100%' : '0%' }} />
+                  </div>
+                  <div className="flex items-center justify-between border-t border-primary-foreground/10 pt-3">
+                    <p className="text-[13px] font-semibold">Payment Method</p>
+                    <p className="text-[13px]">{booking.payment_method?.replace('_', ' ').toUpperCase() ?? 'Not set'}</p>
                   </div>
                 </div>
-                <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                  <div className="h-full rounded-full transition-all" style={{
-                    width: booking.payment_status === 'paid' ? '100%' : '0%',
-                    background: 'var(--secondary-fixed)',
-                  }} />
-                </div>
-                <div className="flex justify-between items-center pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                  <p className="text-[13px] font-semibold">Payment Method</p>
-                  <p className="text-[13px]" style={{ color: 'var(--secondary-fixed)' }}>
-                    {booking.payment_method?.replace('_', ' ').toUpperCase() ?? 'Not set'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>No booking created yet.</p>
-            )}
-          </div>
+              ) : (
+                <p className="text-sm text-primary-foreground/60">No reservation made yet.</p>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Reservation Expiry */}
           {booking?.reservation_expiry && (
-            <div className="glass-card rounded-xl p-6">
-              <h3 className="text-[13px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--on-surface-variant)' }}>
-                Reservation Expiry
-              </h3>
-              <p className="text-[20px] font-bold font-mono"
-                style={{ color: countdown === 'Expired' ? 'var(--error)' : 'var(--primary)' }}>
-                {countdown || '—'}
-              </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--on-surface-variant)' }}>
-                {new Date(booking.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Reservation Expiry
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`font-mono text-xl font-bold ${countdown === 'Expired' ? 'text-destructive' : 'text-foreground'}`}>
+                  {countdown || '—'}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {new Date(booking.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Travel Window */}
-          <div className="glass-card rounded-xl p-6 space-y-4">
-            <h3 className="text-[13px] font-bold uppercase tracking-widest" style={{ color: 'var(--on-surface-variant)' }}>Travel Window</h3>
-            <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
+                <CalendarRange className="size-4" />
+                Travel Window
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
               <Field label="Earliest Departure" value={req.earliest_departure} />
               <Field label="Latest Departure" value={req.latest_departure} />
               {req.earliest_return && <Field label="Earliest Return" value={req.earliest_return} />}
               {req.latest_return && <Field label="Latest Return" value={req.latest_return} />}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AppShell>

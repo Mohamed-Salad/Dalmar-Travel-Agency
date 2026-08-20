@@ -27,9 +27,9 @@ export function initials(name: string) {
 
 // Customer's-eye-view status — derived from booking_requests.status + the linked
 // bookings row, not a stored field. "Where is this traveler in their journey."
-type CustomerStatus = 'Cancelled' | 'Ticket sent' | 'Paid' | 'Reservation made' | 'Inquiry received';
+export type CustomerStatus = 'Cancelled' | 'Ticket sent' | 'Paid' | 'Reservation made' | 'Inquiry received';
 
-function customerStatus(req: BookingRequest, booking: BookingRow | undefined): CustomerStatus {
+export function customerStatus(req: BookingRequest, booking: Pick<Booking, 'payment_status' | 'ticket_sent'> | undefined): CustomerStatus {
   if (req.status === 'cancelled') return 'Cancelled';
   if (booking?.ticket_sent) return 'Ticket sent';
   if (booking?.payment_status === 'paid') return 'Paid';
@@ -37,7 +37,7 @@ function customerStatus(req: BookingRequest, booking: BookingRow | undefined): C
   return 'Inquiry received';
 }
 
-const CUSTOMER_STATUS_BADGE: Record<CustomerStatus, string> = {
+export const CUSTOMER_STATUS_BADGE: Record<CustomerStatus, string> = {
   'Inquiry received':  'bg-sky-500/10 text-sky-500',
   'Reservation made':  'bg-amber-500/10 text-amber-600',
   Paid:                'bg-emerald-500/10 text-emerald-500',
