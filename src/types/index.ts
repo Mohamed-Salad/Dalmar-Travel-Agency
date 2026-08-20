@@ -4,7 +4,9 @@ export interface Database {
   public: {
     Tables: {
       agents: {
-        Row: { id: string; name: string; email: string; phone: string | null; created_at: string };
+        Row: { id: string; name: string; email: string; phone: string | null; created_at: string; status: 'pending' | 'approved' };
+        // `status` is deliberately not client-settable — it defaults to 'pending' in the
+        // database and only an admin flips it, never the signing-up user.
         Insert: { id: string; name: string; email: string; phone?: string | null };
         Update: { name?: string; email?: string; phone?: string | null };
       };

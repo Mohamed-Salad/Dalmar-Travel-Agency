@@ -69,6 +69,10 @@ export default function LoginPage() {
             Not an agent?{' '}
             <Link to="/" className="text-foreground font-medium hover:underline">Back to home</Link>
           </p>
+          <p className="text-center text-sm text-muted-foreground mt-2">
+            New agent?{' '}
+            <Link to="/signup" className="text-foreground font-medium hover:underline">Request access</Link>
+          </p>
         </div>
       </div>
     </div>
