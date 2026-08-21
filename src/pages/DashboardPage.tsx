@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Ticket, Timer, Wallet, Printer, CreditCard, Download } from 'lucide-react';
+import { Ticket, Timer, Wallet, Printer, CreditCard, Download, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
-import type { BookingRequest, Customer, Booking } from '../types';
+import type { BookingRequest, Customer, Booking, FareOption } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<RequestWithCustomer[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [fareOptions, setFareOptions] = useState<Pick<FareOption, 'booking_request_id'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [agentName, setAgentName] = useState('');
   const [filter, setFilter] = useState('All Statuses');
@@ -64,12 +65,14 @@ export default function DashboardPage() {
       if (!user) return;
       const { data: agent } = await supabase.from('agents').select('name').eq('id', user.id).single();
       if (agent) setAgentName(agent.name);
-      const [{ data: reqData }, { data: bookingData }] = await Promise.all([
+      const [{ data: reqData }, { data: bookingData }, { data: fareData }] = await Promise.all([
         supabase.from('booking_requests').select('*, customers(*)').order('created_at', { ascending: false }).limit(20),
         supabase.from('bookings').select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry'),
+        supabase.from('fare_options').select('booking_request_id'),
       ]);
       if (reqData) setRequests(reqData as RequestWithCustomer[]);
       if (bookingData) setBookings(bookingData);
+      if (fareData) setFareOptions(fareData);
       setLoading(false);
     }
     load();
@@ -150,12 +153,19 @@ export default function DashboardPage() {
     ? requests
     : requests.filter((r) => customerStatus(r, bookingByRequest.get(r.id)) === filter);
 
+  // How many booking_requests have more than one fare_options row -- each
+  // re-quote (CustomersPage's "Price changed? Re-quote") adds a row instead
+  // of overwriting the price, so >1 means the price moved at least once.
+  const fareCountByRequest = new Map<string, number>();
+  for (const f of fareOptions) fareCountByRequest.set(f.booking_request_id, (fareCountByRequest.get(f.booking_request_id) ?? 0) + 1);
+
   const counts = {
     active: requests.filter((r) => r.status === 'booked').length,
     expiring: requests.filter((r) => r.status === 'pending').length,
     paymentsPending: bookings.filter((b) => b.payment_status === 'unpaid').length,
     ticketsToPrint: bookings.filter((b) => b.payment_status === 'paid' && !b.ticket_sent).length,
     cardsToMake: bookings.filter((b) => !b.card_made).length,
+    reQuoted: bookings.filter((b) => b.payment_status === 'unpaid' && (fareCountByRequest.get(b.booking_request_id) ?? 0) > 1).length,
   };
 
   const STATS = [
@@ -164,6 +174,7 @@ export default function DashboardPage() {
     { label: 'Payments pending', value: counts.paymentsPending, icon: Wallet, onClick: () => navigate('/customers') },
     { label: 'Tickets to print', value: counts.ticketsToPrint, icon: Printer, onClick: () => navigate('/customers') },
     { label: 'TAAMS cards to make', value: counts.cardsToMake, icon: CreditCard, onClick: () => navigate('/customers') },
+    { label: 'Re-quoted, unpaid', value: counts.reQuoted, icon: TrendingUp, urgent: counts.reQuoted > 0, onClick: () => navigate('/customers') },
   ];
 
   return (
@@ -183,7 +194,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats — click through to the filtered data */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {STATS.map((s) => (
           <button key={s.label} type="button" onClick={s.onClick} className="text-left">
             <Card className="transition-colors hover:border-primary/40">

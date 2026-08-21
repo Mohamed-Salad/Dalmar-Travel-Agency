@@ -9,10 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
-import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange, Pencil } from 'lucide-react';
+import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange, Pencil, TrendingUp } from 'lucide-react';
 
 type FullBooking = Booking & { fare_options: FareOption };
-type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[] };
+type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[]; fare_options: FareOption[] };
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -35,6 +35,8 @@ export default function CustomersPage() {
   const [countdown, setCountdown] = useState('');
   const [editingExpiry, setEditingExpiry] = useState(false);
   const [expiryInput, setExpiryInput] = useState('');
+  const [reQuoting, setReQuoting] = useState(false);
+  const [reQuotePrice, setReQuotePrice] = useState('');
   const intervalRef = useRef<number | null>(null);
 
   function startCountdown(expiry: string) {
@@ -59,7 +61,7 @@ export default function CustomersPage() {
       if (!id) { setLoading(false); return; }
       const { data } = await supabase
         .from('booking_requests')
-        .select('*, customers(*), bookings(*, fare_options(*))')
+        .select('*, customers(*), bookings(*, fare_options(*)), fare_options!booking_request_id(*)')
         .eq('id', id)
         .single();
       if (data) {
@@ -102,6 +104,28 @@ export default function CustomersPage() {
     setEditingExpiry(false);
   }
 
+  async function saveReQuote() {
+    const price = Number(reQuotePrice);
+    const bookingId = req?.bookings?.[0]?.id;
+    if (!price || !bookingId || !id) return;
+    // A re-quote is a new fare_options row, not an edit to the existing one --
+    // the old price stays on record so "first quoted vs current" is a real
+    // query, not something overwritten and lost.
+    const { data: newFare, error: fareErr } = await supabase
+      .from('fare_options')
+      .insert({ booking_request_id: id, departure_date: req!.earliest_departure, price })
+      .select('*').single();
+    if (fareErr || !newFare) return;
+    await supabase.from('bookings').update({ fare_option_id: newFare.id }).eq('id', bookingId);
+    setReq((r) => r && {
+      ...r,
+      fare_options: [...r.fare_options, newFare],
+      bookings: r.bookings.map((b, i) => (i === 0 ? { ...b, fare_options: newFare } : b)),
+    });
+    setReQuoting(false);
+    setReQuotePrice('');
+  }
+
   if (loading) {
     return (
       <AppShell agentName={agentName}>
@@ -126,6 +150,8 @@ export default function CustomersPage() {
 
   const booking = req.bookings?.[0];
   const fare = booking?.fare_options;
+  const firstFare = [...req.fare_options].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+  const wasReQuoted = firstFare && fare && firstFare.id !== fare.id;
   const customer = req.customers;
   const status = customerStatus(req, booking);
   const pax = [
@@ -270,6 +296,12 @@ export default function CustomersPage() {
                     <div>
                       <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Total Fare</p>
                       <p className="text-3xl font-extrabold">{fare?.price != null ? `$${fare.price.toFixed(2)}` : '—'}</p>
+                      {wasReQuoted && (
+                        <p className="mt-1 flex items-center gap-1 text-[12px] text-primary-foreground/70">
+                          <TrendingUp className="size-3.5" />
+                          First quoted at ${firstFare.price.toFixed(2)}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Status</p>
@@ -284,6 +316,24 @@ export default function CustomersPage() {
                     <p className="text-[13px] font-semibold">Payment Method</p>
                     <p className="text-[13px]">{booking.payment_method?.replace('_', ' ').toUpperCase() ?? 'Not set'}</p>
                   </div>
+                  {booking.payment_status !== 'paid' && (
+                    reQuoting ? (
+                      <div className="flex flex-col gap-2 border-t border-primary-foreground/10 pt-3">
+                        <Input type="number" min="0" step="0.01" placeholder="New price" value={reQuotePrice}
+                          onChange={(e) => setReQuotePrice(e.target.value)}
+                          className="border-primary-foreground/30 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50" />
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="secondary" onClick={saveReQuote}>Save new price</Button>
+                          <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setReQuoting(false)}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setReQuoting(true); setReQuotePrice(fare?.price != null ? String(fare.price) : ''); }}
+                        className="border-t border-primary-foreground/10 pt-3 text-left text-[13px] font-semibold text-primary-foreground/80 hover:text-primary-foreground">
+                        Price changed? Re-quote →
+                      </button>
+                    )
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-primary-foreground/60">No reservation made yet.</p>
