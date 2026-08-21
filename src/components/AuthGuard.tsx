@@ -39,7 +39,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             email: user.email!,
             phone: meta.phone ?? null,
           });
-          if (insertError) throw insertError;
+          // React StrictMode double-invokes this effect in dev, so two
+          // concurrent check() calls can both see "no row yet" and race to
+          // insert it -- the loser gets 409 (duplicate key on `id`), which
+          // just means the row exists now either way, not a real failure.
+          if (insertError && insertError.code !== '23505') throw insertError;
           setStatus('pending');
           return;
         }
