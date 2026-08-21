@@ -33,10 +33,10 @@ export default function CustomersPage() {
   const [ticketSent, setTicketSent] = useState(false);
   const [ticketPrinted, setTicketPrinted] = useState(false);
   const [countdown, setCountdown] = useState('');
-  const [editingExpiry, setEditingExpiry] = useState(false);
-  const [expiryInput, setExpiryInput] = useState('');
-  const [reQuoting, setReQuoting] = useState(false);
-  const [reQuotePrice, setReQuotePrice] = useState('');
+  const [updating, setUpdating] = useState(false);
+  const [updatePrice, setUpdatePrice] = useState('');
+  const [updateExpiry, setUpdateExpiry] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   function startCountdown(expiry: string) {
@@ -82,48 +82,46 @@ export default function CustomersPage() {
 
   async function toggleField(field: 'card_made' | 'ticket_sent', value: boolean) {
     const bookingId = req?.bookings?.[0]?.id;
-    if (!bookingId) return;
-    await supabase.from('bookings').update({ [field]: value }).eq('id', bookingId);
+    if (!bookingId) return; // no reservation yet -- nothing to persist this to
+    const { error } = await supabase.from('bookings').update({ [field]: value }).eq('id', bookingId);
+    if (error) { setSaveError(error.message); return; }
     if (field === 'card_made') setCardMade(value);
     if (field === 'ticket_sent') setTicketSent(value);
   }
 
-  function openExpiryEdit() {
-    const current = req?.bookings?.[0]?.reservation_expiry;
-    setExpiryInput(current ? current.slice(0, 16) : '');
-    setEditingExpiry(true);
+  function openUpdateForm() {
+    const b = req?.bookings?.[0];
+    setUpdatePrice(b?.fare_options?.price != null ? String(b.fare_options.price) : '');
+    setUpdateExpiry(b?.reservation_expiry ? b.reservation_expiry.slice(0, 16) : '');
+    setSaveError(null);
+    setUpdating(true);
   }
 
-  async function saveExpiry() {
-    const bookingId = req?.bookings?.[0]?.id;
-    if (!bookingId || !expiryInput) return;
-    const iso = new Date(expiryInput).toISOString();
-    await supabase.from('bookings').update({ reservation_expiry: iso }).eq('id', bookingId);
-    setReq((r) => r && { ...r, bookings: r.bookings.map((b, i) => (i === 0 ? { ...b, reservation_expiry: iso } : b)) });
-    startCountdown(iso);
-    setEditingExpiry(false);
-  }
-
-  async function saveReQuote() {
-    const price = Number(reQuotePrice);
+  // Logs a new reservation-attempt row (price + expiry together, timestamped)
+  // instead of overwriting the current one -- this is the actual log the
+  // Reservation History table below reads from. bookings.reservation_expiry
+  // is kept in sync as the "current" convenience value other pages already
+  // query directly (Dashboard's stats, the countdown here).
+  async function saveUpdate() {
+    const price = Number(updatePrice);
     const bookingId = req?.bookings?.[0]?.id;
     if (!price || !bookingId || !id) return;
-    // A re-quote is a new fare_options row, not an edit to the existing one --
-    // the old price stays on record so "first quoted vs current" is a real
-    // query, not something overwritten and lost.
+    const expiryIso = updateExpiry ? new Date(updateExpiry).toISOString() : null;
     const { data: newFare, error: fareErr } = await supabase
       .from('fare_options')
-      .insert({ booking_request_id: id, departure_date: req!.earliest_departure, price })
+      .insert({ booking_request_id: id, departure_date: req!.earliest_departure, price, reservation_expiry: expiryIso })
       .select('*').single();
-    if (fareErr || !newFare) return;
-    await supabase.from('bookings').update({ fare_option_id: newFare.id }).eq('id', bookingId);
+    if (fareErr || !newFare) { setSaveError(fareErr?.message ?? 'Could not save.'); return; }
+    const { error: bookingErr } = await supabase
+      .from('bookings').update({ fare_option_id: newFare.id, reservation_expiry: expiryIso }).eq('id', bookingId);
+    if (bookingErr) { setSaveError(bookingErr.message); return; }
     setReq((r) => r && {
       ...r,
       fare_options: [...r.fare_options, newFare],
-      bookings: r.bookings.map((b, i) => (i === 0 ? { ...b, fare_options: newFare } : b)),
+      bookings: r.bookings.map((b, i) => (i === 0 ? { ...b, fare_options: newFare, reservation_expiry: expiryIso } : b)),
     });
-    setReQuoting(false);
-    setReQuotePrice('');
+    if (expiryIso) startCountdown(expiryIso);
+    setUpdating(false);
   }
 
   if (loading) {
@@ -150,7 +148,8 @@ export default function CustomersPage() {
 
   const booking = req.bookings?.[0];
   const fare = booking?.fare_options;
-  const firstFare = [...req.fare_options].sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+  const history = [...req.fare_options].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const firstFare = history[history.length - 1];
   const wasReQuoted = firstFare && fare && firstFare.id !== fare.id;
   const customer = req.customers;
   const status = customerStatus(req, booking);
@@ -259,25 +258,31 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          {/* Status toggles */}
+          {/* Status toggles -- card_made/ticket_sent need a reservation to attach
+              to; disabled (not just silently no-op'ing) until one exists. */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'TAAMS Card Created', icon: CreditCard, checked: cardMade, onChange: (v: boolean) => toggleField('card_made', v) },
-              { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: setTicketPrinted },
-              { label: 'WhatsApp Sent', icon: MessageCircle, checked: ticketSent, onChange: (v: boolean) => toggleField('ticket_sent', v) },
-            ].map(({ label, icon: Icon, checked, onChange }) => (
-              <Card key={label} size="sm" className={checked ? 'ring-1 ring-primary' : undefined}>
-                <label className="flex cursor-pointer items-center justify-between px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <Icon className={`size-5 ${checked ? 'text-primary' : 'text-muted-foreground'}`} />
-                    <span className="text-[13px] font-semibold text-foreground">{label}</span>
-                  </div>
-                  <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)}
-                    className="size-4 cursor-pointer accent-primary" />
-                </label>
-              </Card>
-            ))}
+              { label: 'TAAMS Card Created', icon: CreditCard, checked: cardMade, onChange: (v: boolean) => toggleField('card_made', v), persisted: true },
+              { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: setTicketPrinted, persisted: false },
+              { label: 'WhatsApp Sent', icon: MessageCircle, checked: ticketSent, onChange: (v: boolean) => toggleField('ticket_sent', v), persisted: true },
+            ].map(({ label, icon: Icon, checked, onChange, persisted }) => {
+              const disabled = persisted && !booking;
+              return (
+                <Card key={label} size="sm" className={checked ? 'ring-1 ring-primary' : undefined}>
+                  <label className={`flex items-center justify-between px-4 py-2 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                    title={disabled ? 'Make a reservation first' : undefined}>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`size-5 ${checked ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="text-[13px] font-semibold text-foreground">{label}</span>
+                    </div>
+                    <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)}
+                      className="size-4 cursor-pointer accent-primary disabled:cursor-not-allowed" />
+                  </label>
+                </Card>
+              );
+            })}
           </div>
+          {saveError && <p className="text-sm text-destructive">{saveError}</p>}
         </div>
 
         {/* Right column */}
@@ -316,23 +321,34 @@ export default function CustomersPage() {
                     <p className="text-[13px] font-semibold">Payment Method</p>
                     <p className="text-[13px]">{booking.payment_method?.replace('_', ' ').toUpperCase() ?? 'Not set'}</p>
                   </div>
-                  {booking.payment_status !== 'paid' && (
-                    reQuoting ? (
-                      <div className="flex flex-col gap-2 border-t border-primary-foreground/10 pt-3">
-                        <Input type="number" min="0" step="0.01" placeholder="New price" value={reQuotePrice}
-                          onChange={(e) => setReQuotePrice(e.target.value)}
-                          className="border-primary-foreground/30 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50" />
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="secondary" onClick={saveReQuote}>Save new price</Button>
-                          <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setReQuoting(false)}>Cancel</Button>
-                        </div>
+                  <div className="flex items-center justify-between border-t border-primary-foreground/10 pt-3">
+                    <p className="text-[13px] font-semibold">Expires</p>
+                    <p className={`font-mono text-[13px] font-bold ${countdown === 'Expired' ? 'text-destructive' : ''}`}>
+                      {countdown || (booking.reservation_expiry ? '—' : 'Not set')}
+                    </p>
+                  </div>
+                  {booking.payment_status !== 'paid' && !updating && (
+                    <button onClick={openUpdateForm}
+                      className="flex items-center gap-1 border-t border-primary-foreground/10 pt-3 text-left text-[13px] font-semibold text-primary-foreground/80 hover:text-primary-foreground">
+                      <Pencil className="size-3.5" />
+                      Update price / expiry
+                    </button>
+                  )}
+                  {updating && (
+                    <div className="flex flex-col gap-2 border-t border-primary-foreground/10 pt-3">
+                      <label className="text-[11px] uppercase tracking-widest text-primary-foreground/60">Price</label>
+                      <Input type="number" min="0" step="0.01" placeholder="Price" value={updatePrice}
+                        onChange={(e) => setUpdatePrice(e.target.value)}
+                        className="border-primary-foreground/30 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50" />
+                      <label className="text-[11px] uppercase tracking-widest text-primary-foreground/60">Expires</label>
+                      <Input type="datetime-local" value={updateExpiry} onChange={(e) => setUpdateExpiry(e.target.value)}
+                        className="border-primary-foreground/30 bg-transparent font-mono text-primary-foreground" />
+                      {saveError && <p className="text-[12px] text-red-200">{saveError}</p>}
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={saveUpdate}>Save</Button>
+                        <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setUpdating(false)}>Cancel</Button>
                       </div>
-                    ) : (
-                      <button onClick={() => { setReQuoting(true); setReQuotePrice(fare?.price != null ? String(fare.price) : ''); }}
-                        className="border-t border-primary-foreground/10 pt-3 text-left text-[13px] font-semibold text-primary-foreground/80 hover:text-primary-foreground">
-                        Price changed? Re-quote →
-                      </button>
-                    )
+                    </div>
                   )}
                 </div>
               ) : (
@@ -341,40 +357,36 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          {booking && (
-            <Card>
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Reservation Expiry
-                </CardTitle>
-                {!editingExpiry && (
-                  <button onClick={openExpiryEdit} className="text-muted-foreground hover:text-foreground" aria-label="Edit reservation expiry">
-                    <Pencil className="size-3.5" />
-                  </button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {editingExpiry ? (
-                  <div className="flex flex-col gap-2">
-                    <Input type="datetime-local" value={expiryInput} onChange={(e) => setExpiryInput(e.target.value)} className="font-mono" />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={saveExpiry}>Save</Button>
-                      <Button size="sm" variant="outline" onClick={() => setEditingExpiry(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : booking.reservation_expiry ? (
-                  <>
-                    <p className={`font-mono text-xl font-bold ${countdown === 'Expired' ? 'text-destructive' : 'text-foreground'}`}>
-                      {countdown || '—'}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(booking.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Not set — the reservation system deletes unconfirmed holds after a deadline; set this once you know it.</p>
-                )}
-              </CardContent>
+          {history.length > 0 && (
+            <Card className="overflow-hidden py-0">
+              <div className="flex items-center gap-2 border-b border-border bg-secondary px-4 py-3">
+                <Timer className="size-4 text-primary" />
+                <h3 className="text-[13px] font-semibold text-foreground">Reservation History</h3>
+              </div>
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2 text-left font-semibold">Logged</th>
+                    <th className="px-4 py-2 text-left font-semibold">Price</th>
+                    <th className="px-4 py-2 text-left font-semibold">Expiry</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((f) => (
+                    <tr key={f.id} className="border-t border-border">
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {new Date(f.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </td>
+                      <td className="px-4 py-2 font-semibold text-foreground">${f.price.toFixed(2)}</td>
+                      <td className="px-4 py-2 font-mono text-muted-foreground">
+                        {f.reservation_expiry
+                          ? new Date(f.reservation_expiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </Card>
           )}
 

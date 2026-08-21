@@ -40,11 +40,11 @@ export interface Database {
         Row: {
           id: string; booking_request_id: string; departure_date: string;
           return_date: string | null; price: number; airline: string | null;
-          notes: string | null; created_at: string;
+          notes: string | null; created_at: string; reservation_expiry: string | null;
         };
         Insert: {
           booking_request_id: string; departure_date: string; return_date?: string | null;
-          price: number; airline?: string | null; notes?: string | null;
+          price: number; airline?: string | null; notes?: string | null; reservation_expiry?: string | null;
         };
         Update: { price?: number; airline?: string | null; notes?: string | null };
       };

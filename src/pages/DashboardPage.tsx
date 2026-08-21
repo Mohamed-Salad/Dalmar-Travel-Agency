@@ -97,14 +97,15 @@ export default function DashboardPage() {
   async function confirmReservation(req: RequestWithCustomer) {
     const price = Number(resPrice);
     if (!price || !resDeparture) return;
+    const expiryIso = resExpiry ? new Date(resExpiry).toISOString() : null;
     const { data: fare, error: fareErr } = await supabase
       .from('fare_options')
-      .insert({ booking_request_id: req.id, departure_date: resDeparture, price })
+      .insert({ booking_request_id: req.id, departure_date: resDeparture, price, reservation_expiry: expiryIso })
       .select('id').single();
     if (fareErr || !fare) return;
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
-      .insert({ booking_request_id: req.id, fare_option_id: fare.id, reservation_expiry: resExpiry || null })
+      .insert({ booking_request_id: req.id, fare_option_id: fare.id, reservation_expiry: expiryIso })
       .select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry')
       .single();
     if (bookingErr || !booking) return;
