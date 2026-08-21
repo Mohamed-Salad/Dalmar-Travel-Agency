@@ -25,7 +25,18 @@ export default function SignupPage() {
     setLoading(true)
     setError(null)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    // name/phone go in the auth user's own metadata, not a separate insert
+    // here -- this project requires email confirmation, so right after
+    // signUp() there is often no active session yet (data.session is null
+    // until the user clicks the confirmation link), and an agents insert
+    // attempted without a session runs as `anon`, which has no INSERT grant
+    // on that table and fails silently. Storing name/phone in metadata
+    // works regardless of confirmation status; AuthGuard creates the actual
+    // `agents` row the first time it sees a real authenticated session for
+    // this user with no matching row yet (see AuthGuard.tsx).
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email, password, options: { data: { name, phone: phone || null } },
+    })
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
@@ -33,23 +44,6 @@ export default function SignupPage() {
     }
     if (!data.user) {
       setError('Something went wrong creating your account. Please try again.')
-      setLoading(false)
-      return
-    }
-
-    // status is not sent here -- it defaults to 'pending' and is enforced
-    // server-side (supabase/migrations/20260821000000_agent_signup_approval_gate.sql):
-    // an INSERT that tries to set status = 'approved' is rejected by RLS,
-    // not just omitted by this form. Signing up does NOT grant portal
-    // access; an admin must approve first.
-    const { error: agentError } = await supabase
-      .from('agents')
-      .insert({ id: data.user.id, name, email, phone: phone || null })
-    if (agentError) {
-      // The auth account now exists even though this failed -- retrying
-      // signUp() with the same email will fail ("already registered"), so
-      // say so explicitly rather than just showing the raw insert error.
-      setError(`Your login was created, but saving your agent details failed: ${agentError.message}. Contact an admin instead of trying to sign up again with this email.`)
       setLoading(false)
       return
     }
@@ -78,9 +72,10 @@ export default function SignupPage() {
             {submitted ? (
               <CardContent className="text-center py-4">
                 <CheckCircle2 className="size-10 text-primary mx-auto mb-3" />
-                <p className="text-sm text-foreground font-medium">Request submitted</p>
+                <p className="text-sm text-foreground font-medium">Check your email</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  An admin will review your request. You'll be able to sign in once approved.
+                  Confirm your address first, then sign in. An admin still needs to approve your
+                  account after that before the portal unlocks.
                 </p>
                 <Button asChild className="mt-6 w-full">
                   <Link to="/login">Back to sign in</Link>
