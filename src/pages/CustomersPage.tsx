@@ -124,6 +124,35 @@ export default function CustomersPage() {
     setUpdating(false);
   }
 
+  // Same idea as Dashboard's "Make reservation," but reachable from the
+  // customer's own page -- that action never existed here before, so a
+  // fresh inquiry with no booking yet had no way forward from this screen.
+  async function createReservation() {
+    const price = Number(updatePrice);
+    if (!price || !id || !req) return;
+    const expiryIso = updateExpiry ? new Date(updateExpiry).toISOString() : null;
+    const { data: newFare, error: fareErr } = await supabase
+      .from('fare_options')
+      .insert({ booking_request_id: id, departure_date: req.earliest_departure, price, reservation_expiry: expiryIso })
+      .select('*').single();
+    if (fareErr || !newFare) { setSaveError(fareErr?.message ?? 'Could not save.'); return; }
+    const { data: newBooking, error: bookingErr } = await supabase
+      .from('bookings')
+      .insert({ booking_request_id: id, fare_option_id: newFare.id, reservation_expiry: expiryIso })
+      .select('*')
+      .single();
+    if (bookingErr || !newBooking) { setSaveError(bookingErr?.message ?? 'Could not save.'); return; }
+    await supabase.from('booking_requests').update({ status: 'booked' }).eq('id', id);
+    setReq((r) => r && {
+      ...r,
+      status: 'booked',
+      fare_options: [...r.fare_options, newFare],
+      bookings: [{ ...newBooking, fare_options: newFare }],
+    });
+    if (expiryIso) startCountdown(expiryIso);
+    setUpdating(false);
+  }
+
   if (loading) {
     return (
       <AppShell agentName={agentName}>
@@ -351,8 +380,26 @@ export default function CustomersPage() {
                     </div>
                   )}
                 </div>
+              ) : updating ? (
+                <div className="flex flex-col gap-2">
+                  <label className="text-[11px] uppercase tracking-widest text-primary-foreground/60">Price</label>
+                  <Input type="number" min="0" step="0.01" placeholder="Price" value={updatePrice}
+                    onChange={(e) => setUpdatePrice(e.target.value)}
+                    className="border-primary-foreground/30 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50" />
+                  <label className="text-[11px] uppercase tracking-widest text-primary-foreground/60">Expires</label>
+                  <Input type="datetime-local" value={updateExpiry} onChange={(e) => setUpdateExpiry(e.target.value)}
+                    className="border-primary-foreground/30 bg-transparent font-mono text-primary-foreground" />
+                  {saveError && <p className="text-[12px] text-red-200">{saveError}</p>}
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={createReservation}>Save</Button>
+                    <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10" onClick={() => setUpdating(false)}>Cancel</Button>
+                  </div>
+                </div>
               ) : (
-                <p className="text-sm text-primary-foreground/60">No reservation made yet.</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-primary-foreground/60">No reservation made yet.</p>
+                  <Button size="sm" variant="secondary" onClick={openUpdateForm}>Make reservation</Button>
+                </div>
               )}
             </CardContent>
           </Card>
