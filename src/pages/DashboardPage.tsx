@@ -7,8 +7,8 @@ import type { BookingRequest, Customer, Booking, FareOption } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { ReservationDialog, type ReservationValues } from '@/components/reservation/ReservationDialog';
 
 type RequestWithCustomer = BookingRequest & { customers: Customer };
 type BookingRow = Pick<Booking, 'id' | 'booking_request_id' | 'payment_status' | 'ticket_sent' | 'card_made' | 'reservation_expiry'>;
@@ -54,9 +54,6 @@ export default function DashboardPage() {
   const [agentName, setAgentName] = useState('');
   const [filter, setFilter] = useState('All Statuses');
   const [reservingId, setReservingId] = useState<string | null>(null);
-  const [resPrice, setResPrice] = useState('');
-  const [resDeparture, setResDeparture] = useState('');
-  const [resExpiry, setResExpiry] = useState('');
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -87,25 +84,19 @@ export default function DashboardPage() {
     setRequests((r) => r.map((req) => (req.id === id ? { ...req, claimed_by_agent_id: user.id } : req)));
   }
 
-  function openReserveForm(req: RequestWithCustomer) {
-    setReservingId(req.id);
-    setResPrice('');
-    setResDeparture(req.earliest_departure);
-    setResExpiry('');
-  }
-
-  async function confirmReservation(req: RequestWithCustomer) {
-    const price = Number(resPrice);
-    if (!price || !resDeparture) return;
-    const expiryIso = resExpiry ? new Date(resExpiry).toISOString() : null;
+  async function confirmReservation(req: RequestWithCustomer, values: ReservationValues) {
     const { data: fare, error: fareErr } = await supabase
       .from('fare_options')
-      .insert({ booking_request_id: req.id, departure_date: resDeparture, price, reservation_expiry: expiryIso })
+      .insert({
+        booking_request_id: req.id, departure_date: req.earliest_departure,
+        price: values.price, airline: values.airline, reservation_date: values.date,
+        reservation_expiry: values.expiryIso,
+      })
       .select('id').single();
     if (fareErr || !fare) return;
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
-      .insert({ booking_request_id: req.id, fare_option_id: fare.id, reservation_expiry: expiryIso })
+      .insert({ booking_request_id: req.id, fare_option_id: fare.id, reservation_expiry: values.expiryIso })
       .select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry')
       .single();
     if (bookingErr || !booking) return;
@@ -153,6 +144,8 @@ export default function DashboardPage() {
   const filtered = filter === 'All Statuses'
     ? requests
     : requests.filter((r) => customerStatus(r, bookingByRequest.get(r.id)) === filter);
+
+  const reservingReq = requests.find((r) => r.id === reservingId) ?? null;
 
   // How many booking_requests have more than one fare_options row -- each
   // re-quote (CustomersPage's "Price changed? Re-quote") adds a row instead
@@ -290,49 +283,35 @@ export default function DashboardPage() {
                         : <Badge className="bg-destructive/10 text-destructive">Open</Badge>}
                     </td>
                     <td className="px-6 py-4">
-                      {reservingId === req.id ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input type="number" min="0" step="0.01" placeholder="Price" value={resPrice}
-                            onChange={(e) => setResPrice(e.target.value)} className="h-8 w-24" />
-                          <Input type="date" value={resDeparture}
-                            onChange={(e) => setResDeparture(e.target.value)} className="h-8 w-32" />
-                          <Input type="datetime-local" value={resExpiry}
-                            onChange={(e) => setResExpiry(e.target.value)} className="h-8 w-40"
-                            aria-label="Reservation expiry" />
-                          <Button size="sm" onClick={() => confirmReservation(req)}>Confirm</Button>
-                          <Button size="sm" variant="outline" onClick={() => setReservingId(null)}>Cancel</Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2">
-                          {!req.claimed_by_agent_id && req.status === 'pending' && (
-                            <>
-                              <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
-                              <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
-                                <WhatsAppIcon className="size-3.5 text-[#25D366]" />
-                                Dispatch
-                              </Button>
-                            </>
-                          )}
-                          {req.claimed_by_agent_id && !booking && (
-                            <Button size="sm" onClick={() => openReserveForm(req)}>Make reservation</Button>
-                          )}
-                          {booking && booking.payment_status !== 'paid' && (
-                            <Button size="sm" onClick={() => markPaid(booking.id)}>Mark paid</Button>
-                          )}
-                          {booking && booking.payment_status === 'paid' && !booking.ticket_sent && (
-                            <Button size="sm" onClick={() => markTicketSent(booking.id)}>Mark ticket sent</Button>
-                          )}
-                          {booking?.ticket_sent && !booking.card_made && (
-                            <Button size="sm" onClick={() => markCardMade(booking.id)}>Mark TAAMS card</Button>
-                          )}
-                          <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
-                            <a href={`https://wa.me/${phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
-                              <WhatsAppIcon className="size-3.5" />
-                              WhatsApp
-                            </a>
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {!req.claimed_by_agent_id && req.status === 'pending' && (
+                          <>
+                            <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
+                            <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
+                              <WhatsAppIcon className="size-3.5 text-[#25D366]" />
+                              Dispatch
+                            </Button>
+                          </>
+                        )}
+                        {req.claimed_by_agent_id && !booking && (
+                          <Button size="sm" onClick={() => setReservingId(req.id)}>Make reservation</Button>
+                        )}
+                        {booking && booking.payment_status !== 'paid' && (
+                          <Button size="sm" onClick={() => markPaid(booking.id)}>Mark paid</Button>
+                        )}
+                        {booking && booking.payment_status === 'paid' && !booking.ticket_sent && (
+                          <Button size="sm" onClick={() => markTicketSent(booking.id)}>Mark ticket sent</Button>
+                        )}
+                        {booking?.ticket_sent && !booking.card_made && (
+                          <Button size="sm" onClick={() => markCardMade(booking.id)}>Mark TAAMS card</Button>
+                        )}
+                        <Button asChild size="sm" className="bg-[#25D366] text-white hover:bg-[#25D366]/90 focus-visible:ring-[#25D366]/50">
+                          <a href={`https://wa.me/${phone.replace(/\D/g, '')}?text=${waMsg}`} target="_blank" rel="noreferrer">
+                            <WhatsAppIcon className="size-3.5" />
+                            WhatsApp
+                          </a>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -348,6 +327,15 @@ export default function DashboardPage() {
         </div>
       </Card>
       </div>
+
+      {reservingReq && (
+        <ReservationDialog
+          open
+          onOpenChange={(o) => !o && setReservingId(null)}
+          title={`Make reservation — ${reservingReq.customers?.name ?? 'Customer'}`}
+          onSave={(values) => confirmReservation(reservingReq, values)}
+        />
+      )}
     </AppShell>
   );
 }
