@@ -81,6 +81,7 @@ export default function CustomersPage() {
           setCardMade(b.card_made);
           setTicketSent(b.ticket_sent);
           setReservationPrinted(b.reservation_printed);
+          setTicketPrinted(b.ticket_printed);
           if (b.reservation_expiry) startCountdown(b.reservation_expiry);
         }
       }
@@ -90,7 +91,7 @@ export default function CustomersPage() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [id]);
 
-  async function toggleField(field: 'card_made' | 'ticket_sent' | 'reservation_printed', value: boolean) {
+  async function toggleField(field: 'card_made' | 'ticket_sent' | 'reservation_printed' | 'ticket_printed', value: boolean) {
     const bookingId = req?.bookings?.[0]?.id;
     if (!bookingId) return; // no reservation yet -- nothing to persist this to
     const { error } = await supabase.from('bookings').update({ [field]: value }).eq('id', bookingId);
@@ -98,6 +99,7 @@ export default function CustomersPage() {
     if (field === 'card_made') setCardMade(value);
     if (field === 'ticket_sent') setTicketSent(value);
     if (field === 'reservation_printed') setReservationPrinted(value);
+    if (field === 'ticket_printed') setTicketPrinted(value);
   }
 
   function openReservationDialog() {
@@ -336,7 +338,7 @@ export default function CustomersPage() {
             {[
               { label: 'TAAMS Card Created', icon: CreditCard, checked: cardMade, onChange: (v: boolean) => toggleField('card_made', v), persisted: true },
               { label: 'Reservation Printed', icon: FileText, checked: reservationPrinted, onChange: (v: boolean) => toggleField('reservation_printed', v), persisted: true },
-              { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: setTicketPrinted, persisted: false },
+              { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: (v: boolean) => toggleField('ticket_printed', v), persisted: true },
               { label: 'WhatsApp Sent', icon: MessageCircle, checked: ticketSent, onChange: (v: boolean) => toggleField('ticket_sent', v), persisted: true },
             ].map(({ label, icon: Icon, checked, onChange, persisted }) => {
               const disabled = persisted && !booking;

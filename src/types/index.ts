@@ -57,7 +57,7 @@ export interface Database {
           payment_status: 'unpaid' | 'paid';
           payment_method: 'cash' | 'card' | 'bank_transfer' | null;
           payment_date: string | null; ticket_sent: boolean; card_made: boolean;
-          reservation_printed: boolean;
+          reservation_printed: boolean; ticket_printed: boolean;
           created_at: string;
         };
         Insert: {
@@ -70,7 +70,7 @@ export interface Database {
           payment_status?: 'unpaid' | 'paid';
           payment_method?: 'cash' | 'card' | 'bank_transfer' | null;
           payment_date?: string | null; ticket_sent?: boolean; card_made?: boolean;
-          reservation_printed?: boolean;
+          reservation_printed?: boolean; ticket_printed?: boolean;
         };
       };
       payments: {
