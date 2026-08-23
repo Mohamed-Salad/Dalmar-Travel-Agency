@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [agentName, setAgentName] = useState('');
   const [filter, setFilter] = useState('All Statuses');
   const [reservingId, setReservingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,8 +81,10 @@ export default function DashboardPage() {
   async function claimRequest(id: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('booking_requests').update({ claimed_by_agent_id: user.id }).eq('id', id);
-    setRequests((r) => r.map((req) => (req.id === id ? { ...req, claimed_by_agent_id: user.id } : req)));
+    const { error } = await supabase.from('booking_requests').update({ claimed_by_agent_id: user.id }).eq('id', id);
+    if (error) { setActionError(error.message); return; }
+    setActionError(null);
+    setRequests((r) => r.map((req) => (req.id === id ? { ...req, claimed_by_agent_id: user.id, agents: { name: agentName } } : req)));
   }
 
   async function confirmReservation(req: RequestWithCustomer, values: ReservationValues) {
@@ -215,6 +218,12 @@ export default function DashboardPage() {
           </button>
         ))}
       </div>
+
+      {actionError && (
+        <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {actionError}
+        </div>
+      )}
 
       {/* Recent interactions table */}
       <div ref={tableRef} className="scroll-mt-6">
