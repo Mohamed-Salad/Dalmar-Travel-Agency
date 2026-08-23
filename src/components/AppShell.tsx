@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, MessageCircle, BarChart3, LogOut, Search, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, MessageCircle, BarChart3, LogOut, Search } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import ProfileMenu from '@/components/ProfileMenu';
 
 const NAV = [
   { href: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
@@ -25,9 +26,6 @@ export default function AppShell({ children, agentName = '' }: { children: React
     await supabase.auth.signOut();
     navigate('/');
   }
-
-  const initials = agentName
-    .split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'AG';
 
   const sidebarW = expanded ? EXPANDED_W : COLLAPSED_W;
 
@@ -100,22 +98,10 @@ export default function AppShell({ children, agentName = '' }: { children: React
         </div>
 
         <div className="flex items-center gap-5">
-          <button className="relative text-muted-foreground hover:text-foreground">
-            <Bell className="size-5" />
-            <span className="absolute -right-1 -top-1 size-2 rounded-full bg-destructive" />
-          </button>
-          <button className="text-muted-foreground hover:text-foreground">
-            <Settings className="size-5" />
-          </button>
-          <div className="flex items-center gap-3 border-l border-border pl-4">
-            <div className="text-right">
-              <p className="text-[13px] font-semibold text-foreground">{agentName || 'Agent Profile'}</p>
-              <p className="text-[11px] text-muted-foreground">Senior Consultant</p>
-            </div>
-            <div className="flex size-10 items-center justify-center rounded-full bg-secondary text-sm font-bold text-foreground">
-              {initials}
-            </div>
-          </div>
+          {/* Notifications bell removed 23/08/2026 -- it showed a permanent
+              fake "unread" dot with no real data or popup behind it.
+              Rebuilding for real is its own design pass (see PLANNING.md). */}
+          <ProfileMenu agentName={agentName} onLogout={handleLogout} />
         </div>
       </header>
 
