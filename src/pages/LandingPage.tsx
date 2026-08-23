@@ -11,19 +11,19 @@ import { FlightDivider } from "@/components/ui/flight-divider"
 type Lang = "en" | "so"
 const L: Record<string, Record<Lang, string>> = {
   heroTitle:      { en: "Book your flight home.",                                                                          so: "Duulimaadkaaga guriga la aado, dalab." },
-  heroSubtitle:   { en: "Discounted fares across Africa and the Middle East, found by an agent who knows the route — not a search engine.", so: "Qiimo dhimis ah oo loo duulo Afrika iyo Bariga Dhexe, uu helo wakiil aqoon u leh jidka — ma aha nidaam raadin oo otomaatig ah." },
+  heroSubtitle:   { en: "Discounted fares across Africa and the Middle East, found by an agent who knows the route, not a search engine.", so: "Qiimo dhimis ah oo loo duulo Afrika iyo Bariga Dhexe, uu helo wakiil aqoon u leh jidka, ma aha nidaam raadin oo otomaatig ah." },
   startInquiry:   { en: "Start an inquiry",                                                                                 so: "Bilow codsiga" },
   seeRoutes:      { en: "See routes we fly",                                                                                so: "Eeg jidadka aan duulno" },
-  trustBody:      { en: "For over a decade, Dalmar Travel has booked flights for the Somali community — complex family itineraries, tight last-minute departures, and everything in between.", so: "In ka badan toban sano, Dalmar Travel wuxuu u qabsaday duulimaadyo bulshada Soomaalida — jadwallada qoyska ee adag, baxitaannada dhakhsaha ah ee daqiiqadda ugu dambeysa, iyo wax kasta oo u dhexeeya." },
+  trustBody:      { en: "For over a decade, Dalmar Travel has booked flights for the Somali community: complex family itineraries, tight last-minute departures, and everything in between.", so: "In ka badan toban sano, Dalmar Travel wuxuu u qabsaday duulimaadyo bulshada Soomaalida: jadwallada qoyska ee adag, baxitaannada dhakhsaha ah ee daqiiqadda ugu dambeysa, iyo wax kasta oo u dhexeeya." },
   trustStat:      { en: "Years serving the community",                                                                     so: "Sannadood oo bulshada u adeegayay" },
-  trustNote:      { en: "Every reservation is confirmed by a person who picks up the phone — not a chatbot.",               so: "Dalabkasta waxaa xaqiijiya qof ka jawaaba taleefanka — ma aha chatbot." },
+  trustNote:      { en: "Every reservation is confirmed by a person who picks up the phone, not a chatbot.",                so: "Dalabkasta waxaa xaqiijiya qof ka jawaaba taleefanka, ma aha chatbot." },
   servicesTitle:  { en: "Why book with Dalmar",                                                                            so: "Maxaad Dalmar ugu dalban lahayd" },
   svc1Title:      { en: "Flights, our only focus",                                                                         so: "Duulimaad, waa waxa aan ku takhasusnahay" },
-  svc1Desc:       { en: "We don't do hotels or car rentals — every hour goes into finding you the best route home.",       so: "Ma qabanno hoteel ama kirada gaadhi — saacad walba waxaa loo huray inaan kuu helno jidka ugu fiican ee guriga." },
+  svc1Desc:       { en: "We don't do hotels or car rentals. Every hour goes into finding you the best route home.",        so: "Ma qabanno hoteel ama kirada gaadhi. Saacad walba waxaa loo huray inaan kuu helno jidka ugu fiican ee guriga." },
   svc2Title:      { en: "Discounted Travelport rates",                                                                     so: "Qiimo dhimis Travelport" },
   svc2Desc:       { en: "Industry pricing most travelers can't access on their own, passed straight to you.",              so: "Qiimaha warshadaha ee dad badan aysan gaari karin iyaga keligood, oo si toos ah kuugu gudbiya." },
   svc3Title:      { en: "Somali & English, either way",                                                                    so: "Soomaali iyo Ingiriisi, midkastaba" },
-  svc3Desc:       { en: "Talk to your agent in whichever language is easiest — nothing gets lost between you and your ticket.", so: "Kula hadal wakiilkaaga luuqadda kuu fudud — waxba ma lumayaan adiga iyo tigidhkaaga dhexdiisa." },
+  svc3Desc:       { en: "Talk to your agent in whichever language is easiest. Nothing gets lost between you and your ticket.", so: "Kula hadal wakiilkaaga luuqadda kuu fudud. Waxba ma lumayaan adiga iyo tigidhkaaga dhexdiisa." },
   routesTitle:    { en: "Routes we fly",                                                                                    so: "Jidadka aan duulno" },
   whatsappTitle:  { en: "Need instant support?",                                                                            so: "Ma u baahan tahay caawimaad degdeg ah?" },
   whatsappBody:   { en: "Message an agent directly on WhatsApp.",                                                           so: "Toos ula xiriir wakiil WhatsApp." },
@@ -34,11 +34,11 @@ function tr(key: string, lang: Lang) { return L[key]?.[lang] ?? key }
 
 const REGIONS: Record<Lang, { name: string; desc: string }[]> = {
   en: [
-    { name: "Africa", desc: "Most of what we book — Mogadishu to Nairobi, Hargeisa, Addis Ababa, and every major hub across the continent." },
+    { name: "Africa", desc: "Most of what we book: Mogadishu to Nairobi, Hargeisa, Addis Ababa, and every major hub across the continent." },
     { name: "Middle East", desc: "Dubai, Jeddah, Doha, Istanbul, and the rest of the region." },
   ],
   so: [
-    { name: "Afrika", desc: "Inta badan ee aan dalabno — Muqdisho ilaa Nairobi, Hargeysa, Addis Ababa, iyo dekedaha waaweyn ee qaaradda oo dhan." },
+    { name: "Afrika", desc: "Inta badan ee aan dalabno: Muqdisho ilaa Nairobi, Hargeysa, Addis Ababa, iyo dekedaha waaweyn ee qaaradda oo dhan." },
     { name: "Bariga Dhexe", desc: "Dubai, Jeddah, Doha, Istanbul, iyo gobolka intiisa kale." },
   ],
 }
