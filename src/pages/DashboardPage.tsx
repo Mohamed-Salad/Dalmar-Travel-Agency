@@ -301,14 +301,14 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        {!req.claimed_by_agent_id && (
+                          <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
+                        )}
                         {!req.claimed_by_agent_id && req.status === 'pending' && (
-                          <>
-                            <Button size="sm" onClick={() => claimRequest(req.id)}>Claim</Button>
-                            <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
-                              <WhatsAppIcon className="size-3.5 text-[#25D366]" />
-                              Dispatch
-                            </Button>
-                          </>
+                          <Button size="sm" variant="outline" onClick={() => dispatchToGroup(req)}>
+                            <WhatsAppIcon className="size-3.5 text-[#25D366]" />
+                            Dispatch
+                          </Button>
                         )}
                         {req.claimed_by_agent_id && !booking && (
                           <Button size="sm" onClick={() => setReservingId(req.id)}>Make reservation</Button>
