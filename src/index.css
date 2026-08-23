@@ -103,20 +103,36 @@
 }
 
 /* Sparse dot field, site-wide on the Schiphol theme — reads as stars or a
-   route network. background-attachment: fixed gives it depth via parallax
-   (stars stay put, page scrolls over them) without resorting to literal 3D.
+   route network. Rendered as a real `position: fixed` layer (::before)
+   rather than `background-attachment: fixed` on the element itself --
+   the latter is a well-known Chromium rendering quirk that drops the
+   background out at non-100% page zoom (a fractional-device-pixel
+   compositor issue, not specific to this codebase); a fixed-position box
+   doesn't have that failure mode at any zoom level. `isolation: isolate`
+   gives .dot-field its own stacking context so the -1 z-index pseudo-
+   element paints above its own background-color but below normal page
+   content, without needing every page's content to opt into z-index.
    A slow diagonal drift (not a particle-effect twinkle — that reads as the
    generic AI-landing-page starfield we're trying to avoid) gives a "flying
    through the night sky" feel instead of "static texture". 480px = 10x the
    48px tile, so the loop is seamless. Respects prefers-reduced-motion. */
 .dot-field {
+  position: relative;
+  isolation: isolate;
+}
+
+.dot-field::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   background-image: radial-gradient(circle, rgba(245,243,236,0.35) 1px, transparent 1px);
   background-size: 48px 48px;
-  background-attachment: fixed;
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .dot-field {
+  .dot-field::before {
     animation: dot-drift 140s linear infinite;
   }
 }

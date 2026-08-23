@@ -18,7 +18,7 @@ function SiteHeader({
   showAgentLink?: boolean
 }) {
   const wordmark = (
-    <Link to="/" className="font-display text-lg font-bold text-foreground">
+    <Link to="/" className="font-display text-lg font-bold text-foreground whitespace-nowrap">
       Dalmar Travel
     </Link>
   )
@@ -50,7 +50,7 @@ function SiteHeader({
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link to="/inquiry">Make an inquiry</Link>
           </Button>
           <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
