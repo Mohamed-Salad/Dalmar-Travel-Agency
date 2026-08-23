@@ -94,7 +94,7 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-bold leading-[0.95] tracking-tight max-w-3xl">
+          <h1 className="font-display text-6xl sm:text-7xl md:text-8xl font-bold leading-[0.95] tracking-tight">
             {tr("heroTitle", lang)}
           </h1>
           <p className="mt-6 max-w-lg text-on-ink/80 text-base leading-relaxed">
