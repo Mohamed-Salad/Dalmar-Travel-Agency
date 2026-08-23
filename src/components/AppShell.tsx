@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, MessageCircle, BarChart3, Plus, LogOut, Search, Bell, Settings } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, MessageCircle, BarChart3, LogOut, Search, Bell, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -73,15 +73,10 @@ export default function AppShell({ children, agentName = '' }: { children: React
           })}
         </nav>
 
-        {/* Bottom */}
+        {/* Bottom -- "New Booking" CTA removed 23/08/2026: it duplicated the
+            "New Quote" nav item above, same /quote destination under a
+            different name. */}
         <div className="mt-auto space-y-3">
-          <Link
-            to="/quote"
-            className="flex items-center justify-center gap-2 overflow-hidden rounded bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <Plus className="size-4 shrink-0" />
-            {expanded && <span className="whitespace-nowrap">New Booking</span>}
-          </Link>
           <button
             onClick={handleLogout}
             className="flex w-full items-center justify-center gap-2 rounded py-2 text-xs text-on-ink/40 hover:text-on-ink/70"
