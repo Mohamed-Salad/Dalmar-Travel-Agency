@@ -8,6 +8,7 @@ import CustomersListPage from './pages/CustomersListPage';
 import CustomersPage from './pages/CustomersPage';
 import CoordinationPage from './pages/CoordinationPage';
 import QuotePage from './pages/QuotePage';
+import ReportsPage from './pages/ReportsPage';
 import AuthGuard from './components/AuthGuard';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
         <Route path="/customers/:id" element={<AuthGuard><CustomersPage /></AuthGuard>} />
         <Route path="/coordination"  element={<AuthGuard><CoordinationPage /></AuthGuard>} />
         <Route path="/quote"         element={<AuthGuard><QuotePage /></AuthGuard>} />
+        <Route path="/reports"       element={<AuthGuard><ReportsPage /></AuthGuard>} />
       </Routes>
     </BrowserRouter>
   );
