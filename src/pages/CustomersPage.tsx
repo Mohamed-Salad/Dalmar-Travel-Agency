@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { ReservationDialog, type ReservationValues } from '@/components/reservation/ReservationDialog';
-import { ArrowLeft, User, Plane, CreditCard, Printer, MessageCircle, Wallet, Timer, CalendarRange, Pencil, TrendingUp } from 'lucide-react';
+import { ArrowLeft, User, Plane, CreditCard, Printer, FileText, MessageCircle, Wallet, Timer, CalendarRange, Pencil, TrendingUp } from 'lucide-react';
 
 type FullBooking = Booking & { fare_options: FareOption };
 type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[]; fare_options: FareOption[] };
@@ -32,6 +32,7 @@ export default function CustomersPage() {
   const [cardMade, setCardMade] = useState(false);
   const [ticketSent, setTicketSent] = useState(false);
   const [ticketPrinted, setTicketPrinted] = useState(false);
+  const [reservationPrinted, setReservationPrinted] = useState(false);
   const [countdown, setCountdown] = useState('');
   const [reservationOpen, setReservationOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export default function CustomersPage() {
         if (b) {
           setCardMade(b.card_made);
           setTicketSent(b.ticket_sent);
+          setReservationPrinted(b.reservation_printed);
           if (b.reservation_expiry) startCountdown(b.reservation_expiry);
         }
       }
@@ -78,13 +80,14 @@ export default function CustomersPage() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [id]);
 
-  async function toggleField(field: 'card_made' | 'ticket_sent', value: boolean) {
+  async function toggleField(field: 'card_made' | 'ticket_sent' | 'reservation_printed', value: boolean) {
     const bookingId = req?.bookings?.[0]?.id;
     if (!bookingId) return; // no reservation yet -- nothing to persist this to
     const { error } = await supabase.from('bookings').update({ [field]: value }).eq('id', bookingId);
     if (error) { setSaveError(error.message); return; }
     if (field === 'card_made') setCardMade(value);
     if (field === 'ticket_sent') setTicketSent(value);
+    if (field === 'reservation_printed') setReservationPrinted(value);
   }
 
   function openReservationDialog() {
@@ -274,11 +277,13 @@ export default function CustomersPage() {
             </CardContent>
           </Card>
 
-          {/* Status toggles -- card_made/ticket_sent need a reservation to attach
-              to; disabled (not just silently no-op'ing) until one exists. */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Status toggles -- card_made/ticket_sent/reservation_printed need a
+              reservation to attach to; disabled (not just silently no-op'ing)
+              until one exists. */}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
               { label: 'TAAMS Card Created', icon: CreditCard, checked: cardMade, onChange: (v: boolean) => toggleField('card_made', v), persisted: true },
+              { label: 'Reservation Printed', icon: FileText, checked: reservationPrinted, onChange: (v: boolean) => toggleField('reservation_printed', v), persisted: true },
               { label: 'Ticket Printed', icon: Printer, checked: ticketPrinted, onChange: setTicketPrinted, persisted: false },
               { label: 'WhatsApp Sent', icon: MessageCircle, checked: ticketSent, onChange: (v: boolean) => toggleField('ticket_sent', v), persisted: true },
             ].map(({ label, icon: Icon, checked, onChange, persisted }) => {
