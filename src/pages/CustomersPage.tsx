@@ -2,16 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
-import type { BookingRequest, Customer, Booking, FareOption } from '../types';
+import type { BookingRequest, Customer, Booking, FareOption, Payment } from '../types';
 import { customerStatus, CUSTOMER_STATUS_BADGE } from './DashboardPage';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { ReservationDialog, type ReservationValues } from '@/components/reservation/ReservationDialog';
-import { ArrowLeft, User, Plane, CreditCard, Printer, FileText, MessageCircle, Wallet, Timer, CalendarRange, Pencil, TrendingUp } from 'lucide-react';
+import { ArrowLeft, User, Plane, CreditCard, Printer, FileText, MessageCircle, Wallet, Timer, CalendarRange, Pencil, TrendingUp, Banknote } from 'lucide-react';
 
-type FullBooking = Booking & { fare_options: FareOption };
+const PAYMENT_METHODS = ['cash', 'card', 'bank_transfer'] as const;
+
+type FullBooking = Booking & { fare_options: FareOption; payments: Payment[] };
 type RequestWithAll = BookingRequest & { customers: Customer; bookings: FullBooking[]; fare_options: FareOption[] };
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -36,6 +39,12 @@ export default function CustomersPage() {
   const [countdown, setCountdown] = useState('');
   const [reservationOpen, setReservationOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [recordingPayment, setRecordingPayment] = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState<typeof PAYMENT_METHODS[number]>('cash');
+  const [payError, setPayError] = useState<string | null>(null);
+  const [payingSaving, setPayingSaving] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   function startCountdown(expiry: string) {
@@ -54,13 +63,14 @@ export default function CustomersPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        setAgentId(user.id);
         const { data: agent } = await supabase.from('agents').select('name').eq('id', user.id).single();
         if (agent) setAgentName(agent.name);
       }
       if (!id) { setLoading(false); return; }
       const { data } = await supabase
         .from('booking_requests')
-        .select('*, customers(*), bookings(*, fare_options(*)), fare_options!booking_request_id(*)')
+        .select('*, customers(*), bookings(*, fare_options(*), payments(*)), fare_options!booking_request_id(*)')
         .eq('id', id)
         .single();
       if (data) {
@@ -143,6 +153,44 @@ export default function CustomersPage() {
     setReservationOpen(false);
   }
 
+  // Payments are an append-only ledger (one row per installment/deposit --
+  // customers on a payment plan pay in increments, others pay the full
+  // price up front in one entry) rather than a single overwritten total, so
+  // the running balance is always the real sum of what's actually been
+  // recorded, not a separately-editable number that can drift from it.
+  // Crosses into "paid" the moment the ledger covers the price, whether
+  // that takes one entry or five.
+  async function recordPayment() {
+    const bookingId = req?.bookings?.[0]?.id;
+    const amount = Number(payAmount);
+    if (!bookingId || !agentId || !amount || amount <= 0) return;
+    setPayingSaving(true);
+    setPayError(null);
+    const { data: payment, error: payErr } = await supabase
+      .from('payments')
+      .insert({ booking_id: bookingId, agent_id: agentId, amount, method: payMethod })
+      .select('*').single();
+    if (payErr || !payment) { setPayError(payErr?.message ?? 'Could not save.'); setPayingSaving(false); return; }
+
+    const price = req?.bookings?.[0]?.fare_options?.price ?? 0;
+    const newTotalPaid = (req?.bookings?.[0]?.payments ?? []).reduce((sum, p) => sum + p.amount, 0) + payment.amount;
+    const nowPaid = newTotalPaid >= price;
+    if (nowPaid) {
+      const { error: statusErr } = await supabase
+        .from('bookings').update({ payment_status: 'paid', payment_date: new Date().toISOString() }).eq('id', bookingId);
+      if (statusErr) { setPayError(statusErr.message); setPayingSaving(false); return; }
+    }
+    setReq((r) => r && {
+      ...r,
+      bookings: r.bookings.map((b, i) => (i === 0
+        ? { ...b, payments: [...b.payments, payment], ...(nowPaid ? { payment_status: 'paid' as const } : {}) }
+        : b)),
+    });
+    setPayAmount('');
+    setPayingSaving(false);
+    setRecordingPayment(false);
+  }
+
   if (loading) {
     return (
       <AppShell agentName={agentName}>
@@ -167,6 +215,10 @@ export default function CustomersPage() {
 
   const booking = req.bookings?.[0];
   const fare = booking?.fare_options;
+  const payments = [...(booking?.payments ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const remaining = Math.max((fare?.price ?? 0) - totalPaid, 0);
+  const paidPct = fare?.price ? Math.min((totalPaid / fare.price) * 100, 100) : 0;
   const history = [...req.fare_options].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const firstFare = history[history.length - 1];
   const wasReQuoted = firstFare && fare && firstFare.id !== fare.id;
@@ -270,7 +322,7 @@ export default function CustomersPage() {
                 {fare?.price != null && (
                   <div className="shrink-0 text-right">
                     <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Fare</p>
-                    <p className="text-xl font-bold text-foreground">${fare.price.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-foreground">£{fare.price.toFixed(2)}</p>
                   </div>
                 )}
               </div>
@@ -321,39 +373,72 @@ export default function CustomersPage() {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Total Fare</p>
-                      <p className="text-3xl font-extrabold">{fare?.price != null ? `$${fare.price.toFixed(2)}` : '—'}</p>
+                      <p className="text-3xl font-extrabold">{fare?.price != null ? `£${fare.price.toFixed(2)}` : '—'}</p>
                       {wasReQuoted && (
                         <p className="mt-1 flex items-center gap-1 text-[12px] text-primary-foreground/70">
                           <TrendingUp className="size-3.5" />
-                          First quoted at ${firstFare.price.toFixed(2)}
+                          First quoted at £{firstFare.price.toFixed(2)}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
                       <p className="mb-1 text-[11px] uppercase tracking-widest text-primary-foreground/60">Status</p>
-                      <p className="text-lg font-bold">{booking.payment_status === 'paid' ? 'Paid ✓' : 'Unpaid'}</p>
+                      <p className="text-lg font-bold">
+                        {booking.payment_status === 'paid' ? 'Paid ✓' : totalPaid > 0 ? `£${remaining.toFixed(2)} owing` : 'Unpaid'}
+                      </p>
                     </div>
                   </div>
                   <div className="h-2.5 w-full overflow-hidden rounded-full bg-primary-foreground/10">
-                    <div className="h-full rounded-full bg-primary-foreground/80 transition-all"
-                      style={{ width: booking.payment_status === 'paid' ? '100%' : '0%' }} />
+                    <div className="h-full rounded-full bg-primary-foreground/80 transition-all" style={{ width: `${paidPct}%` }} />
                   </div>
-                  <div className="flex items-center justify-between border-t border-primary-foreground/10 pt-3">
-                    <p className="text-[13px] font-semibold">Payment Method</p>
-                    <p className="text-[13px]">{booking.payment_method?.replace('_', ' ').toUpperCase() ?? 'Not set'}</p>
-                  </div>
+                  {payments.length > 0 && (
+                    <div className="space-y-1.5 border-t border-primary-foreground/10 pt-3">
+                      <p className="text-[13px] font-semibold">Payments recorded</p>
+                      {payments.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between text-[12px] text-primary-foreground/80">
+                          <span>{new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {p.method.replace('_', ' ')}</span>
+                          <span className="font-semibold">£{p.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center justify-between border-t border-primary-foreground/10 pt-3">
                     <p className="text-[13px] font-semibold">Expires</p>
                     <p className={`font-mono text-[13px] font-bold ${countdown === 'Expired' ? 'text-destructive' : ''}`}>
                       {countdown || (booking.reservation_expiry ? '—' : 'Not set')}
                     </p>
                   </div>
-                  {booking.payment_status !== 'paid' && (
-                    <button onClick={openReservationDialog}
-                      className="flex items-center gap-1 border-t border-primary-foreground/10 pt-3 text-left text-[13px] font-semibold text-primary-foreground/80 hover:text-primary-foreground">
-                      <Pencil className="size-3.5" />
-                      Update price / expiry
-                    </button>
+                  {booking.payment_status !== 'paid' && !recordingPayment && (
+                    <div className="flex items-center justify-between border-t border-primary-foreground/10 pt-3">
+                      <button onClick={openReservationDialog}
+                        className="flex items-center gap-1 text-left text-[13px] font-semibold text-primary-foreground/80 hover:text-primary-foreground">
+                        <Pencil className="size-3.5" />
+                        Update price / expiry
+                      </button>
+                      <Button size="sm" variant="secondary" onClick={() => { setPayError(null); setRecordingPayment(true); }}>
+                        <Banknote className="size-3.5" />
+                        Record a payment
+                      </Button>
+                    </div>
+                  )}
+                  {recordingPayment && (
+                    <div className="flex flex-col gap-2 border-t border-primary-foreground/10 pt-3">
+                      <Input type="number" min="0" step="0.01" placeholder={`Amount (up to £${remaining.toFixed(2)})`} value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        className="border-primary-foreground/30 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50" />
+                      <select value={payMethod} onChange={(e) => setPayMethod(e.target.value as typeof PAYMENT_METHODS[number])}
+                        className="rounded-md border border-primary-foreground/30 bg-transparent px-3 py-2 text-sm text-primary-foreground">
+                        {PAYMENT_METHODS.map((m) => <option key={m} value={m} className="text-foreground">{m.replace('_', ' ')}</option>)}
+                      </select>
+                      {payError && <p className="text-[12px] text-red-200">{payError}</p>}
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="secondary" onClick={recordPayment} disabled={payingSaving || !payAmount}>
+                          {payingSaving ? 'Saving…' : 'Save payment'}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/10"
+                          onClick={() => setRecordingPayment(false)} disabled={payingSaving}>Cancel</Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -386,7 +471,7 @@ export default function CustomersPage() {
                       <td className="px-4 py-2 text-muted-foreground">
                         {new Date(f.reservation_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </td>
-                      <td className="px-4 py-2 font-semibold text-foreground">${f.price.toFixed(2)}</td>
+                      <td className="px-4 py-2 font-semibold text-foreground">£{f.price.toFixed(2)}</td>
                       <td className="px-4 py-2 text-muted-foreground">{f.airline ?? '—'}</td>
                       <td className="px-4 py-2 font-mono text-muted-foreground">
                         {f.reservation_expiry
