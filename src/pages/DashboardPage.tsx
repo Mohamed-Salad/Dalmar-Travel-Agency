@@ -153,9 +153,17 @@ export default function DashboardPage() {
   const fareCountByRequest = new Map<string, number>();
   for (const f of fareOptions) fareCountByRequest.set(f.booking_request_id, (fareCountByRequest.get(f.booking_request_id) ?? 0) + 1);
 
+  // Unpaid reservations whose expiry falls on today's calendar date -- the
+  // agent still stands to lose these if the customer doesn't pay in time.
+  // Was previously (wrongly) counting booking_requests.status === 'pending',
+  // which is the default status of every brand-new inquiry and has nothing
+  // to do with an actual reservation_expiry.
+  const now = new Date();
   const counts = {
     active: requests.filter((r) => r.status === 'booked').length,
-    expiring: requests.filter((r) => r.status === 'pending').length,
+    expiring: bookings.filter((b) =>
+      b.payment_status === 'unpaid' && b.reservation_expiry && new Date(b.reservation_expiry).toDateString() === now.toDateString()
+    ).length,
     paymentsPending: bookings.filter((b) => b.payment_status === 'unpaid').length,
     ticketsToPrint: bookings.filter((b) => b.payment_status === 'paid' && !b.ticket_sent).length,
     cardsToMake: bookings.filter((b) => !b.card_made).length,
@@ -164,7 +172,7 @@ export default function DashboardPage() {
 
   const STATS = [
     { label: 'Active reservations', value: counts.active, icon: Ticket, onClick: () => filterTable('Reservation made') },
-    { label: 'Expiring today', value: counts.expiring, icon: Timer, urgent: true, onClick: () => filterTable('Inquiry received') },
+    { label: 'Expiring today', value: counts.expiring, icon: Timer, urgent: true, onClick: () => filterTable('Reservation made') },
     { label: 'Payments pending', value: counts.paymentsPending, icon: Wallet, onClick: () => navigate('/customers') },
     { label: 'Tickets to print', value: counts.ticketsToPrint, icon: Printer, onClick: () => navigate('/customers') },
     { label: 'TAAMS cards to make', value: counts.cardsToMake, icon: CreditCard, onClick: () => navigate('/customers') },
