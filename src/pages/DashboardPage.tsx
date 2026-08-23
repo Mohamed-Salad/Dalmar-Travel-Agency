@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Ticket, Timer, Wallet, Printer, CreditCard, Download, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import AppShell from '../components/AppShell';
-import type { BookingRequest, Customer, Booking, FareOption } from '../types';
+import type { BookingRequest, Customer, Booking, FareOption, Agent } from '../types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { ReservationDialog, type ReservationValues } from '@/components/reservation/ReservationDialog';
 
-type RequestWithCustomer = BookingRequest & { customers: Customer };
+type RequestWithCustomer = BookingRequest & { customers: Customer; agents: Pick<Agent, 'name'> | null };
 type BookingRow = Pick<Booking, 'id' | 'booking_request_id' | 'payment_status' | 'ticket_sent' | 'card_made' | 'reservation_expiry'>;
 
 // Pipeline status (booking_requests.status) — used by CustomersListPage too, unchanged.
@@ -63,7 +63,7 @@ export default function DashboardPage() {
       const { data: agent } = await supabase.from('agents').select('name').eq('id', user.id).single();
       if (agent) setAgentName(agent.name);
       const [{ data: reqData }, { data: bookingData }, { data: fareData }] = await Promise.all([
-        supabase.from('booking_requests').select('*, customers(*)').order('created_at', { ascending: false }).limit(20),
+        supabase.from('booking_requests').select('*, customers(*), agents(name)').order('created_at', { ascending: false }).limit(20),
         supabase.from('bookings').select('id, booking_request_id, payment_status, ticket_sent, card_made, reservation_expiry'),
         supabase.from('fare_options').select('booking_request_id'),
       ]);
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                     </td>
                     <td className="cursor-pointer px-6 py-4" onClick={() => navigate(`/customers/${req.id}`)}>
                       {req.claimed_by_agent_id
-                        ? <Badge className="bg-emerald-500/10 text-emerald-500">Claimed</Badge>
+                        ? <Badge className="bg-emerald-500/10 text-emerald-500">{req.agents?.name ?? 'Claimed'}</Badge>
                         : <Badge className="bg-destructive/10 text-destructive">Open</Badge>}
                     </td>
                     <td className="px-6 py-4">
