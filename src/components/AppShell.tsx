@@ -8,7 +8,7 @@ import ProfileMenu from '@/components/ProfileMenu';
 
 const NAV = [
   { href: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/quote',        icon: FileText,        label: 'New Quote' },
+  { href: '/quote',        icon: FileText,        label: 'New Inquiry' },
   { href: '/customers',    icon: Users,            label: 'Customers' },
   { href: '/coordination', icon: MessageCircle,    label: 'WhatsApp' },
   { href: '/reports',      icon: BarChart3,        label: 'Reports' },

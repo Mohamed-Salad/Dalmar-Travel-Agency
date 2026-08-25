@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 type Lang = 'en' | 'so';
 const L: Record<string, Record<Lang, string>> = {
-  title:      { en: 'Request Your Travel Quote',                               so: 'Codsiga Qiimaha Safarkaaga' },
+  title:      { en: 'Log a New Inquiry',                                       so: 'Codsiga Safarkaaga' },
   subtitle:   { en: 'Fill out the form and agents will find the best rates.',  so: 'Buuxi foomka, wakiiladeenuna waxay helayaan qiimaha ugu fiican.' },
   phone:      { en: 'Phone / WhatsApp',                                        so: 'Telefoon / WhatsApp' },
   email:      { en: 'Email Address',                                           so: 'Ciwaanka Emailka' },
@@ -31,7 +31,7 @@ const L: Record<string, Record<Lang, string>> = {
   infants:    { en: 'Infants',                                                 so: 'Ilmo yar' },
   oneway:     { en: 'One Way',                                                 so: 'Hal Taraf' },
   return:     { en: 'Return',                                                  so: 'Noqosho' },
-  submit:     { en: 'Submit Quote Request',                                    so: 'Dir Codsiga Qiimaha' },
+  submit:     { en: 'Submit Inquiry',                                          so: 'Dir Codsiga' },
   submitting: { en: 'Submitting…',                                             so: 'La dirayo…' },
   notes:      { en: 'Additional Notes',                                        so: 'Faallo Dheeraad Ah' },
 };
@@ -207,7 +207,7 @@ export default function QuotePage() {
         {success && (
           <div className="mb-6 flex items-center gap-3 rounded-lg bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-600">
             <CheckCircle2 className="size-5" />
-            Quote request submitted! Redirecting to dashboard…
+            Inquiry submitted! Redirecting to dashboard…
           </div>
         )}
 
