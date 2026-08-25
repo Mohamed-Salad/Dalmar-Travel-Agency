@@ -37,3 +37,4 @@ npm-debug.log*
 # MCP config holds a real API key (Stitch) — never commit it.
 # .mcp.json.example documents the shape for a fresh clone.
 .mcp.json
+.netlify
