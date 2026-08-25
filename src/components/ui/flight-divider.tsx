@@ -52,7 +52,7 @@ function FlightDivider({
       <div className={centerline} />
       {animated ? (
         <div
-          className={cn("absolute", vertical ? "top-0 fly-vertical" : "left-0 fly-horizontal")}
+          className={cn("absolute", vertical ? "left-1/2 fly-vertical" : "top-1/2 fly-horizontal")}
           style={{ animationDelay: `${delay}s` }}
         >
           {plane}

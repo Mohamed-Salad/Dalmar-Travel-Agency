@@ -145,8 +145,15 @@
 /* Plane traveling the length of a FlightDivider (animated prop) — a single
    ambient flight per divider, not a swarm. Static (translate to center,
    no animation) when the OS asks for reduced motion. */
-.fly-horizontal { transform: translateX(-50%); }
-.fly-vertical { transform: translateY(-50%); }
+/* Both axes are explicit -- the travel axis (left/top) via keyframes, the
+   cross axis (top-1/2 / left-1/2 in the component + this -50% translate)
+   centering the icon on the line. Previously the cross axis was left to
+   the browser's absolute-position "static position" fallback (no
+   explicit top/left set at all), which happened to land correctly for
+   the horizontal divider but drifted ~3px off-center on the vertical
+   one -- fragile either way, so both are pinned now. */
+.fly-horizontal { transform: translate(-50%, -50%); }
+.fly-vertical { transform: translate(-50%, -50%); }
 
 @media (prefers-reduced-motion: no-preference) {
   .fly-horizontal { animation: fly-horizontal 8s linear infinite; }
@@ -154,13 +161,13 @@
 }
 
 @keyframes fly-horizontal {
-  from { left: 0%; transform: translateX(-50%); }
-  to { left: 100%; transform: translateX(-50%); }
+  from { left: 0%; transform: translate(-50%, -50%); }
+  to { left: 100%; transform: translate(-50%, -50%); }
 }
 
 @keyframes fly-vertical {
-  from { top: 0%; transform: translateY(-50%); }
-  to { top: 100%; transform: translateY(-50%); }
+  from { top: 0%; transform: translate(-50%, -50%); }
+  to { top: 100%; transform: translate(-50%, -50%); }
 }
 
 /* Chromium/WebKit's default calendar-picker glyph renders dark and is
